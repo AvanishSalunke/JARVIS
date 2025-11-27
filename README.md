@@ -3,6 +3,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: Phase 1 Active](https://img.shields.io/badge/Status-Phase%201%20Active-brightgreen)](https://github.com/[YOUR_USERNAME]/[YOUR_REPO])
 
+> **Status:** This project is currently in active development.
+
+
 An open-source, multi-phase project to build a modular, "Jarvis-like" AI assistant. This system is designed to be scalable and eventually integrate advanced reasoning, persistent memory, full speech interaction, vision, and OS-level automation.
 
 ##  Core Vision
