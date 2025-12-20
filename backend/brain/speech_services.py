@@ -77,12 +77,14 @@ def transcribe_audio(file_path: str):
         print(f"Error in transcription: {e}")
         return ""
 
-def generate_speech(text: str, output_file="response.wav"):
-    """Takes text, creates an audio file."""
+def generate_speech(text: str, output_file: str):
+    """Takes text, creates an audio file at the specific path."""
     if SPEAKER_EMBEDDING is None:
         print("Error: No speaker embedding found.")
         return None
 
+    print(f"Generating audio for: {text}") # Debug print
+    
     inputs = processor(text=text, return_tensors="pt").to(DEVICE)
     
     with torch.no_grad():
@@ -92,5 +94,6 @@ def generate_speech(text: str, output_file="response.wav"):
             vocoder=vocoder
         )
     
+    # Save correctly
     sf.write(output_file, audio.cpu().numpy(), 16000)
-    return output_file  
+    return output_file
