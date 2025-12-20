@@ -1,42 +1,127 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/* Dark Theme Setup */
+:root {
+  --core-color: #00f3ff; /* Cyan Blue */
+  --bg-color: #050505;
+  --text-color: #ffffff;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Inter', sans-serif;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  width: 100%;
+  max-width: 600px;
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* The Glowing Orb (JARVIS Core) */
+.orb-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.orb {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--core-color) 0%, transparent 70%);
+  box-shadow: 0 0 40px var(--core-color), 0 0 80px var(--core-color);
+  transition: all 0.3s ease;
+  z-index: 10;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* Animation classes controlled by React */
+.orb.speaking {
+  animation: pulse 1.5s infinite ease-in-out;
+  box-shadow: 0 0 60px #ff0055, 0 0 100px #ff0055; /* Red when speaking */
+  background: radial-gradient(circle, #ff0055 0%, transparent 70%);
 }
 
-.card {
-  padding: 2em;
+.orb.listening {
+  box-shadow: 0 0 50px #00ff00; /* Green when listening */
+  transform: scale(1.1);
 }
 
-.read-the-docs {
-  color: #888;
+.orb.thinking {
+  animation: spin 2s infinite linear;
+  border: 4px dashed var(--core-color);
+  background: transparent;
+  box-shadow: none;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Chat History Area */
+.chat-log {
+  width: 100%;
+  height: 200px;
+  overflow-y: auto;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.message {
+  margin-bottom: 8px;
+  padding: 5px;
+  border-radius: 4px;
+}
+.user { color: #aaa; }
+.ai { color: var(--core-color); font-weight: bold; }
+
+/* The Mic Button */
+.mic-button {
+  background: none;
+  border: 2px solid var(--core-color);
+  color: var(--core-color);
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mic-button:hover {
+  background: var(--core-color);
+  color: black;
+  box-shadow: 0 0 20px var(--core-color);
+}
+
+.mic-button.active {
+  background: #ff0000;
+  border-color: #ff0000;
+  color: white;
 }
