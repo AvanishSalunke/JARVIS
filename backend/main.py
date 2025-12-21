@@ -30,7 +30,7 @@ def read_root():
 @app.post("/process-voice")
 async def process_voice(file: UploadFile = File(...)):
     # Save the user's recording temporarily
-    temp_filename = "temp_input.wav"
+    temp_filename = "temp_input.webm"
     with open(temp_filename, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 

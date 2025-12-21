@@ -54,11 +54,11 @@ function App() {
 
   const handleStopRecording = async () => {
     // Convert chunks to a single blob (file)
-    const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+    const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
     
     // Create a Form to send the file
     const formData = new FormData();
-    formData.append("file", audioBlob, "recording.wav");
+    formData.append("file", audioBlob, "recording.webm");
 
     try {
       // --- SEND TO PYTHON BACKEND ---
