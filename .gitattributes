@@ -1,1 +1,5 @@
+backend/SpeechToText/vosk-model-en-us-0.22/rescore/* filter=lfs diff=lfs merge=lfs -text
+backend/SpeechToText/vosk-model-en-us-0.22/rnnlm/* filter=lfs diff=lfs merge=lfs -text
+backend/SpeechToText/vosk-model-en-us-0.22/am/* filter=lfs diff=lfs merge=lfs -text
+backend/SpeechToText/vosk-model-en-us-0.22/graph/* filter=lfs diff=lfs merge=lfs -text
 backend/SpeechToText/vosk-model-en-us-0.22/** filter=lfs diff=lfs merge=lfs -text
