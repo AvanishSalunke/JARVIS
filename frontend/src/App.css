@@ -1,7 +1,12 @@
-/* Dark Theme Setup */
+/* src/App.css */
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap');
+
 :root {
-  --core-color: #00f3ff; /* Cyan Blue */
+  --primary-color: #ff3333; /* Iron Man Red */
+  --secondary-color: #7a0000;
+  --accent-color: #ffcc00; /* Gold/Yellow accents */
   --bg-color: #050505;
+  --glass-bg: rgba(20, 0, 0, 0.6);
   --text-color: #ffffff;
 }
 
@@ -10,118 +15,188 @@ body {
   padding: 0;
   background-color: var(--bg-color);
   color: var(--text-color);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Rajdhani', sans-serif; /* Sci-fi font */
   height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   overflow: hidden;
+  background-image: radial-gradient(circle at center, #1a0000 0%, #000000 70%);
 }
 
-.container {
+.jarvis-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
-  width: 100%;
-  max-width: 600px;
-  text-align: center;
+  justify-content: space-between;
+  height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-/* The Glowing Orb (JARVIS Core) */
+/* --- THE ARC REACTOR (Orb) --- */
 .orb-container {
-  position: relative;
-  width: 200px;
-  height: 200px;
+  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
 }
 
-.orb {
-  width: 120px;
-  height: 120px;
+.arc-reactor {
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--core-color) 0%, transparent 70%);
-  box-shadow: 0 0 40px var(--core-color), 0 0 80px var(--core-color);
+  border: 4px solid var(--primary-color);
+  box-shadow: 0 0 50px var(--primary-color), inset 0 0 20px var(--primary-color);
+  background: radial-gradient(circle, #ffaaaa 10%, transparent 60%);
+  position: relative;
   transition: all 0.3s ease;
   z-index: 10;
 }
 
-/* Animation classes controlled by React */
-.orb.speaking {
-  animation: pulse 1.5s infinite ease-in-out;
-  box-shadow: 0 0 60px #ff0055, 0 0 100px #ff0055; /* Red when speaking */
-  background: radial-gradient(circle, #ff0055 0%, transparent 70%);
+/* Core Ring Detail */
+.arc-reactor::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  height: 80%;
+  border: 2px dashed var(--accent-color);
+  border-radius: 50%;
+  animation: spin 10s linear infinite;
 }
 
-.orb.listening {
-  box-shadow: 0 0 50px #00ff00; /* Green when listening */
+/* Animations based on State */
+.arc-reactor.listening {
+  box-shadow: 0 0 80px var(--primary-color), 0 0 20px var(--accent-color);
   transform: scale(1.1);
+  border-color: var(--accent-color);
 }
 
-.orb.thinking {
-  animation: spin 2s infinite linear;
-  border: 4px dashed var(--core-color);
-  background: transparent;
+.arc-reactor.speaking {
+  animation: pulse 0.8s infinite alternate;
+  background: radial-gradient(circle, #fff 20%, var(--primary-color) 80%);
+  box-shadow: 0 0 100px var(--primary-color);
+}
+
+.arc-reactor.processing {
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  animation: spin 1s linear infinite;
   box-shadow: none;
 }
 
-@keyframes pulse {
-  0% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.2); opacity: 1; }
-  100% { transform: scale(1); opacity: 0.8; }
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Chat History Area */
-.chat-log {
+/* --- CHAT LOG --- */
+.chat-window {
   width: 100%;
-  height: 200px;
-  overflow-y: auto;
-  border: 1px solid #333;
+  max-width: 600px;
+  height: 300px;
+  background: var(--glass-bg);
+  border: 1px solid var(--primary-color);
   border-radius: 10px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  font-size: 0.9rem;
-  text-align: left;
+  overflow-y: auto;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 20px rgba(255, 51, 51, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) transparent;
 }
 
 .message {
-  margin-bottom: 8px;
-  padding: 5px;
-  border-radius: 4px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  max-width: 80%;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
 }
-.user { color: #aaa; }
-.ai { color: var(--core-color); font-weight: bold; }
 
-/* The Mic Button */
-.mic-button {
-  background: none;
-  border: 2px solid var(--core-color);
-  color: var(--core-color);
-  border-radius: 50%;
-  width: 60px;
-  height: 60px;
-  cursor: pointer;
-  transition: all 0.2s;
+.message.user {
+  align-self: flex-end;
+  background: rgba(255, 255, 255, 0.1);
+  border-right: 3px solid var(--accent-color);
+  text-align: right;
+}
+
+.message.jarvis {
+  align-self: flex-start;
+  background: rgba(255, 0, 0, 0.1);
+  border-left: 3px solid var(--primary-color);
+  color: var(--primary-color);
+  text-shadow: 0 0 5px var(--primary-color);
+}
+
+/* --- INPUT AREA --- */
+.input-area {
+  width: 100%;
+  max-width: 600px;
   display: flex;
+  gap: 10px;
   align-items: center;
-  justify-content: center;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 15px;
+  border-radius: 15px;
+  border: 1px solid #333;
 }
 
-.mic-button:hover {
-  background: var(--core-color);
-  color: black;
-  box-shadow: 0 0 20px var(--core-color);
-}
-
-.mic-button.active {
-  background: #ff0000;
-  border-color: #ff0000;
+input[type="text"] {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid #555;
   color: white;
+  font-size: 1.2rem;
+  font-family: 'Rajdhani', sans-serif;
+  padding: 10px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+input[type="text"]:focus {
+  border-color: var(--primary-color);
+}
+
+button {
+  background: transparent;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  padding: 10px 20px;
+  cursor: pointer;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: bold;
+  text-transform: uppercase;
+  transition: all 0.3s;
+  clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+}
+
+button:hover:not(:disabled) {
+  background: var(--primary-color);
+  color: black;
+  box-shadow: 0 0 15px var(--primary-color);
+}
+
+button:disabled {
+  border-color: #555;
+  color: #555;
+  cursor: not-allowed;
+}
+
+button.mic-active {
+  background: var(--primary-color);
+  color: black;
+  box-shadow: 0 0 20px var(--primary-color);
+  animation: pulse 1s infinite;
+}
+
+/* --- ANIMATIONS --- */
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1.05); }
 }
