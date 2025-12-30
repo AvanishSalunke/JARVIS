@@ -2,7 +2,6 @@ import os
 import io
 import uuid
 import json
-import wave
 import subprocess
 
 import torch
@@ -14,7 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from vosk import Model, KaldiRecognizer
+from faster_whisper import WhisperModel
+
 from transformers import (
     SpeechT5Processor,
     SpeechT5ForTextToSpeech,
@@ -57,16 +57,16 @@ vector_store = get_vector_store()
 chat_history = []   # In-memory (OK for now)
 
 # =====================
-# SPEECH TO TEXT (VOSK)
+# SPEECH TO TEXT (WHISPER)
 # =====================
 
-VOSK_MODEL_PATH = os.path.join(BASE_DIR,"SpeechToText", "vosk-model-en-us-0.22")
+WHISPER_MODEL_SIZE = "small"  # tiny | base | small | medium | large-v3
 
-if not os.path.exists(VOSK_MODEL_PATH):
-    raise RuntimeError("Vosk model not found")
-
-vosk_model = Model(VOSK_MODEL_PATH)
-
+whisper_model = WhisperModel(
+    WHISPER_MODEL_SIZE,
+    device="cpu",
+    compute_type="int8"  # best for CPU
+)
 @app.post("/stt")
 async def speech_to_text(file: UploadFile = File(...)):
     uid = uuid.uuid4().hex
@@ -80,8 +80,7 @@ async def speech_to_text(file: UploadFile = File(...)):
         [
             FFMPEG_PATH,
             "-y",
-            "-i",
-            webm_path,
+            "-i", webm_path,
             "-ar", "16000",
             "-ac", "1",
             wav_path
@@ -91,28 +90,19 @@ async def speech_to_text(file: UploadFile = File(...)):
         check=True
     )
 
-    wf = wave.open(wav_path, "rb")
-    rec = KaldiRecognizer(vosk_model, wf.getframerate())
-    rec.SetWords(True)
+    segments, info = whisper_model.transcribe(
+        wav_path,
+        language="en",
+        vad_filter=True
+    )
 
-    result_text = ""
+    text = " ".join(segment.text for segment in segments)
 
-    while True:
-        data = wf.readframes(4000)
-        if len(data) == 0:
-            break
-        if rec.AcceptWaveform(data):
-            result = json.loads(rec.Result())
-            result_text += result.get("text", "") + " "
-
-    final_result = json.loads(rec.FinalResult())
-    result_text += final_result.get("text", "")
-
-    wf.close()
     os.remove(webm_path)
     os.remove(wav_path)
 
-    return {"text": result_text.strip()}
+    return {"text": text.strip()}
+
 
 # =====================
 # 🔹 ADDED: CHAT ENDPOINT (LLM)
