@@ -3,7 +3,8 @@ import io
 import uuid
 import subprocess
 import asyncio
-import edge_tts  # <--- The new fast voice engine
+import edge_tts  
+import re
 
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -142,12 +143,9 @@ def chat(req: ChatRequest):
     return ChatResponse(response=response)
 
 # =====================
-# NEW: FAST TEXT TO SPEECH (Edge-TTS)
+# CLEAN & FAST TTS
 # =====================
 
-# You can change the voice here. 
-# "en-GB-RyanNeural" is a nice British male voice.
-# "en-US-AriaNeural" is a standard American female voice.
 TTS_VOICE = "en-GB-RyanNeural"
 
 @app.post("/tts")
@@ -155,23 +153,24 @@ async def text_to_speech(text: str):
     if not text.strip():
         return {"error": "No text provided"}
 
-    # Generate a unique temp file
+    # 1. CLEANING: Remove Markdown symbols (*, #, _, etc.)
+    # This regex removes asterisks, hashes, and backticks so TTS doesn't read them.
+    clean_text = re.sub(r'[\*\#`_]', '', text) 
+    
+    # Optional: Remove emojis if they sound weird (uncomment if needed)
+    # clean_text = re.sub(r'[^\w\s,!.?]', '', clean_text)
+
+    # 2. Generate Audio
     output_file = f"tts_{uuid.uuid4().hex}.mp3"
+    communicate = edge_tts.Communicate(clean_text, TTS_VOICE)
     
-    # Communicate with Edge-TTS service
-    communicate = edge_tts.Communicate(text, TTS_VOICE)
-    
-    # Save to file
     await communicate.save(output_file)
     
-    # Read file content into memory
     with open(output_file, "rb") as f:
         audio_data = f.read()
     
-    # Cleanup temp file
     os.remove(output_file)
     
-    # Return audio stream
     return StreamingResponse(io.BytesIO(audio_data), media_type="audio/mpeg")
 
 
