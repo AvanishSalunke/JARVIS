@@ -34,8 +34,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 # =====================
 
 FFMPEG_PATH = r"C:\ffmpeg\bin\ffmpeg.exe"
-BASE_DIR = r"C:\Users\praty\OneDrive\Desktop\Jarvis\JARVIS\backend"
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # =====================
 # FASTAPI APP
 # =====================
@@ -139,10 +138,10 @@ def chat(req: ChatRequest):
     return ChatResponse(response=response)
 
 # =====================
-# TEXT TO SPEECH (SpeechT5)
+# UPDATED TEXT TO SPEECH (With Chunking)
 # =====================
 
-embedding_path = r"C:\Users\praty\OneDrive\Desktop\Jarvis\JARVIS\backend\TextToSpeech\speaker_embedding.txt"
+embedding_path = os.path.join(BASE_DIR, "TextToSpeech", "speaker_embedding.txt")
 embedding = np.loadtxt(embedding_path)
 speaker_embedding = torch.tensor(embedding, dtype=torch.float32).unsqueeze(0)
 
@@ -152,18 +151,58 @@ vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan")
 
 @app.post("/tts")
 def text_to_speech(text: str):
-    inputs = processor(text=text, return_tensors="pt")
+    # 1. Simple chunking: Split text by periods to avoid overloading the model
+    # (We split by ". " to keep sentences largely intact)
+    chunks = text.split(". ")
+    
+    combined_audio = []
 
-    speech = tts_model.generate_speech(
-        inputs["input_ids"],
-        speaker_embeddings=speaker_embedding
-    )
+    for chunk in chunks:
+        if not chunk.strip(): 
+            continue
+            
+        # Add the period back that we removed, for natural pausing
+        chunk_text = chunk + "."
+        
+        # Skip extremely long chunks or empty ones
+        if len(chunk_text) > 500: 
+            chunk_text = chunk_text[:500] # Safety crop
 
-    audio = vocoder(speech).detach().cpu().numpy().squeeze()
-    audio = np.clip(audio, -1.0, 1.0)
+        inputs = processor(text=chunk_text, return_tensors="pt")
+
+        # Generate spectrogram
+        speech = tts_model.generate_speech(
+            inputs["input_ids"],
+            speaker_embeddings=speaker_embedding
+        )
+        
+        # Convert to waveform using vocoder
+        audio_chunk = vocoder(speech).detach().cpu().numpy().squeeze()
+        
+        # Add to our list
+        combined_audio.append(audio_chunk)
+        
+        # Add a little silence between sentences (0.2 seconds)
+        silence = np.zeros(int(16000 * 0.2)) 
+        combined_audio.append(silence)
+
+    # 2. Stitch all audio chunks together
+    if combined_audio:
+        final_audio = np.concatenate(combined_audio)
+    else:
+        # Fallback if text was empty
+        final_audio = np.zeros(16000)
+
+    final_audio = np.clip(final_audio, -1.0, 1.0)
 
     buffer = io.BytesIO()
-    sf.write(buffer, audio, samplerate=16000, format="WAV")
+    sf.write(buffer, final_audio, samplerate=16000, format="WAV")
     buffer.seek(0)
 
     return StreamingResponse(buffer, media_type="audio/wav")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    print("Starting JARVIS Backend on http://127.0.0.1:8000")
+    uvicorn.run(app, host="127.0.0.1", port=8000)

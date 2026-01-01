@@ -201,3 +201,8 @@ button.mic-active {
   0% { opacity: 0.7; }
   100% { opacity: 1; }
 }
+
+.message p {
+  margin: 0;
+  padding: 0;
+}
