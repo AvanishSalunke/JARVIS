@@ -142,27 +142,38 @@ def chat(req: ChatRequest):
 
     return ChatResponse(response=response)
 
-# =====================
-# CLEAN & FAST TTS
-# =====================
-
-TTS_VOICE = "en-GB-RyanNeural"
+# =========================================
+# tts
+# =======================================
 
 @app.post("/tts")
 async def text_to_speech(text: str):
     if not text.strip():
         return {"error": "No text provided"}
 
-    # 1. CLEANING: Remove Markdown symbols (*, #, _, etc.)
-    # This regex removes asterisks, hashes, and backticks so TTS doesn't read them.
-    clean_text = re.sub(r'[\*\#`_]', '', text) 
+    # ==========================================
+    # 1. THE "MOOD SAVER" CLEANING
+    # ==========================================
     
-    # Optional: Remove emojis if they sound weird (uncomment if needed)
-    # clean_text = re.sub(r'[^\w\s,!.?]', '', clean_text)
+    # Remove Markdown (*bold*, _italic_) so he doesn't say "Asterisk"
+    clean_text = re.sub(r'[*#`_~]', '', text)
+    
+    # Remove Emojis (Visual flirting is for the screen, not the voice)
+    # This regex removes most emoji characters
+    clean_text = re.sub(r'[^\w\s,!.?\']', '', clean_text)
+    
+    # Fix common awkward pauses
+    clean_text = clean_text.replace("  ", " ")
 
-    # 2. Generate Audio
+    # ==========================================
+    # 2. GENERATE AUDIO (Edge-TTS)
+    # ==========================================
+    
     output_file = f"tts_{uuid.uuid4().hex}.mp3"
-    communicate = edge_tts.Communicate(clean_text, TTS_VOICE)
+    
+    # "en-GB-RyanNeural" is polite/charming. 
+    # Try "en-US-BrianNeural" for a deeper, slightly more mature voice.
+    communicate = edge_tts.Communicate(clean_text, "en-GB-RyanNeural")
     
     await communicate.save(output_file)
     
@@ -172,8 +183,6 @@ async def text_to_speech(text: str):
     os.remove(output_file)
     
     return StreamingResponse(io.BytesIO(audio_data), media_type="audio/mpeg")
-
-
 # =====================
 # RUNNER
 # =====================
