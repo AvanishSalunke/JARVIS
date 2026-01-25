@@ -6,7 +6,6 @@ langchain-mistralai
 langchain-chroma
 chromadb
 faster-whisper
-react-markdown
 pytest
 transformers
 Pillow

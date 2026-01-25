@@ -212,22 +212,58 @@ async def image_question(file: UploadFile = File(...), question: str = Form(...)
 
     contents = await file.read()
 
+    # Step 1: Get the Image Description
+    image_description = None
+    error_message = None  # Store the error
+    
     try:
         from backend.brain import local_multimodal
         if local_multimodal and local_multimodal.is_available():
-            ans, err = local_multimodal.analyze_image_with_local_llm(contents, question)
-            if ans and not err:
-                mem.append_to_chat(chat_id, "human", f"[Image: {file.filename}] {question}")
-                mem.append_to_chat(chat_id, "ai", ans)
-                return ChatResponse(response=ans, chat_id=chat_id)
+            # Pass None to get a generic description
+            image_description, error_message = local_multimodal.analyze_image_with_local_llm(contents, None)
+        else:
+            error_message = "Local multimodal module not available or imports missing."
+            
     except Exception as e:
+        error_message = f"Crash in image analysis: {str(e)}"
         print(f"Multimodal analysis error: {e}")
 
-    ai_response = "I'm unable to analyze this image right now. The multimodal model may still be loading or encountered an error."
-    mem.append_to_chat(chat_id, "human", f"[Image: {file.filename}] {question}")
-    mem.append_to_chat(chat_id, "ai", ai_response)
+    # If it failed, TELL US WHY
+    if not image_description:
+        # Use the actual error message if we have one
+        detailed_error = error_message if error_message else "Unknown error occurred."
+        ai_response = f"I'm sorry, I couldn't see the image. The internal error was: [{detailed_error}]"
+        
+        mem.append_to_chat(chat_id, "human", f"[Image: {file.filename}] {question}")
+        mem.append_to_chat(chat_id, "ai", ai_response)
+        return ChatResponse(response=ai_response, chat_id=chat_id)
 
-    return ChatResponse(response=ai_response, chat_id=chat_id)
+    # Step 2: Send Description to Brain
+    print(f"🖼️ Vision Model saw: {image_description}")
+    
+    prompt_for_brain = (
+        f"SYSTEM: The user uploaded an image. "
+        f"The visual description is: '{image_description}'. "
+        f"User's Question: '{question}'\n"
+        "Answer the question using the visual description."
+    )
+
+    history_dicts = mem.get_chat_history(chat_id)
+    langchain_history = []
+    for h in history_dicts:
+        if h["role"] == "human":
+            langchain_history.append(HumanMessage(content=h["content"]))
+        else:
+            langchain_history.append(AIMessage(content=h["content"]))
+    
+    long_term_mem = mem.get_long_term_memory()
+
+    final_answer = brain.get_brain_response(prompt_for_brain, langchain_history, long_term_mem)
+
+    mem.append_to_chat(chat_id, "human", f"[Image: {file.filename}] {question}")
+    mem.append_to_chat(chat_id, "ai", final_answer)
+
+    return ChatResponse(response=final_answer, chat_id=chat_id)
 
 @app.get("/status")
 def service_status():
