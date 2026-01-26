@@ -10,4 +10,8 @@ pytest
 transformers
 Pillow
 torch
+edge_tts
+langchain_groq
+langchain_community
+python-multipart
 
