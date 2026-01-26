@@ -46,7 +46,7 @@ app.add_middleware(
 
 # Load Whisper once on startup
 print("⏳ Loading Whisper Model...")
-whisper_model = WhisperModel("base.en", device="cpu", compute_type="int8")
+whisper_model = WhisperModel("small.en", device="cpu", compute_type="int8")
 print("✅ Whisper Model Loaded!")
 
 # Preload multimodal model
@@ -282,24 +282,36 @@ async def speech_to_text(file: UploadFile = File(...)):
     uid = uuid.uuid4().hex
     webm_path = f"{uid}.webm"
     wav_path = f"{uid}.wav"
+    clean_wav_path = f"{uid}_clean.wav"
 
+    # Save uploaded file
     with open(webm_path, "wb") as f:
         f.write(await file.read())
 
     try:
-        subprocess.run(
-            [FFMPEG_PATH, "-y", "-i", webm_path, "-ar", "16000", "-ac", "1", wav_path],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True
-        )
+        # Convert webm -> wav (16kHz mono) with noise reduction and trimming silence
+        # -af "highpass, lowpass, afftdn, silenceremove"
+        # highpass & lowpass: filter extreme frequencies
+        # afftdn: noise reduction
+        # silenceremove: trims silence at start/end
+        subprocess.run([
+            FFMPEG_PATH, "-y", "-i", webm_path,
+            "-ar", "16000", "-ac", "1",
+            "-af", "highpass=f=200, lowpass=f=3000, afftdn, silenceremove=stop_periods=-1:stop_threshold=-50dB",
+            clean_wav_path
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
     except Exception as e:
         print(f"FFmpeg Error: {e}")
         return {"error": "FFmpeg conversion failed"}
 
-    segments, _ = whisper_model.transcribe(wav_path, language="en", vad_filter=True)
+    # Transcribe with Whisper (VAD optional)
+    segments, _ = whisper_model.transcribe(clean_wav_path, language="en", vad_filter=True)
     text = " ".join(s.text for s in segments)
 
-    if os.path.exists(webm_path): os.remove(webm_path)
-    if os.path.exists(wav_path): os.remove(wav_path)
+    # Cleanup files
+    for path in [webm_path, wav_path, clean_wav_path]:
+        if os.path.exists(path):
+            os.remove(path)
 
     return {"text": text.strip()}
 
