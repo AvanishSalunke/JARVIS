@@ -43,7 +43,8 @@ class Brain:
             # This teaches Jarvis to output JSON when he needs to search
             self.system_message_text = (
                 "You are J.A.R.V.I.S, a helpful, witty, and precise AI assistant. "
-                "You have access to a real-time 'web_search' tool.\n\n"
+                "You have access to a real-time 'web_search' tool and you can it for image describing too.\n\n"
+                "LIMIT: Respond in at most 30 words."
                 "CRITICAL INSTRUCTION: If the user asks for real-time information (news, weather, time, sports scores, or facts you don't know), "
                 "you MUST output a specific JSON command to use the search tool.\n\n"
                 "COMMAND FORMAT:\n"
