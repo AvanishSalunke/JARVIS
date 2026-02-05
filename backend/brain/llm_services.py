@@ -89,9 +89,9 @@ class Brain:
                 "RULES:\n"
                 "- When using a tool, output ONLY JSON.\n"
                 "- No explanations when calling tools.\n"
-                "- Use full Windows paths when required.\n"
+                "- Use full Windows 10/11 paths when required.\n"
                 "- Do not invent new actions.\n"
-                "- If the task cannot be done using these actions, respond normally instead.\n\n"
+                "- If the task cannot be done using these actions, respond normally instead. Do not take any destructive local actions \n\n"
 
                 "If the user asks a knowledge question → respond normally.\n"
             )
