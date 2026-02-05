@@ -1,0 +1,18 @@
+Collecting setuptools
+  Using cached setuptools-80.10.2-py3-none-any.whl.metadata (6.6 kB)
+Collecting wheel
+  Using cached wheel-0.46.3-py3-none-any.whl.metadata (2.4 kB)
+Collecting numpy
+  Using cached numpy-2.4.1-cp312-cp312-win_amd64.whl.metadata (6.6 kB)
+Collecting pybind11
+  Using cached pybind11-3.0.1-py3-none-any.whl.metadata (10.0 kB)
+Collecting packaging>=24.0 (from wheel)
+  Using cached packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+Using cached setuptools-80.10.2-py3-none-any.whl (1.1 MB)
+Using cached wheel-0.46.3-py3-none-any.whl (30 kB)
+Using cached numpy-2.4.1-cp312-cp312-win_amd64.whl (12.3 MB)
+Using cached pybind11-3.0.1-py3-none-any.whl (293 kB)
+Using cached packaging-26.0-py3-none-any.whl (74 kB)
+Installing collected packages: setuptools, pybind11, packaging, numpy, wheel
+
+Successfully installed numpy-2.4.1 packaging-26.0 pybind11-3.0.1 setuptools-80.10.2 wheel-0.46.3
