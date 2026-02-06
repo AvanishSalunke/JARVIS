@@ -6,6 +6,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+import hashlib
 
 # --- CONFIGURATION ---
 SECRET_KEY = "jarvis_secret_key_change_this"  # Change this in production!
@@ -13,7 +14,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 USERS_FILE = "users.json"
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # --- DATABASE HELPERS ---
@@ -40,11 +41,12 @@ def get_user(username: str):
 
 # --- PASSWORD LOGIC ---
 
-def verify_password(plain_password, hashed_password):
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
-def get_password_hash(password):
-    return pwd_context.hash(password)
 
 # --- USER CREATION (This is where your error was) ---
 

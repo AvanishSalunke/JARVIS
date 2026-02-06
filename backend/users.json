@@ -1,0 +1,14 @@
+{
+    "Prats": {
+        "username": "Prats",
+        "hashed_password": "$bcrypt-sha256$v=2,t=2b,r=12$RcOChFRqr/hmRWmPqfsL3u$7Yh1Xs6eSXNEzZg0VQFWJgolN6lkacy"
+    },
+    "Pratyush": {
+        "username": "Pratyush",
+        "hashed_password": "$bcrypt-sha256$v=2,t=2b,r=12$KnfVccPfS9ZHE8MVZC5cE.$7uMX5t/W2gez2dRTDnZ7FwdFSXc1Qva"
+    },
+    "Pratyus": {
+        "username": "Pratyus",
+        "hashed_password": "$bcrypt-sha256$v=2,t=2b,r=12$2HCp.Io2RtEZQAPd9FF/jO$dHdHYnOmY1kc2c9n9/rfIzRDsxE7PlK"
+    }
+}
