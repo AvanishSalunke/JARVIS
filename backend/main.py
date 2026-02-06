@@ -1,3 +1,26 @@
+import os
+import sys
+import warnings
+import logging
+
+# --- SILENCE WARNINGS (Updated) ---
+# 1. Silence HuggingFace Hub (Fixes "unauthenticated requests" warning)
+os.environ["HF_HUB_VERBOSITY"] = "error" 
+os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+
+# 2. Silence Transformers & TensorFlow
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3" 
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+
+# 3. Force Python Logger to ignore HF warnings
+logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
+logging.getLogger("transformers").setLevel(logging.ERROR)
+
+# 4. Filter Deprecation Warnings (LangChain/Pydantic)
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+# ------------------------
+
 import sys
 import pathlib
 import json    
