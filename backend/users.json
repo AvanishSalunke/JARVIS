@@ -14,5 +14,21 @@
     "avanish1": {
         "username": "avanish1",
         "hashed_password": "$bcrypt-sha256$v=2,t=2b,r=12$KMtPaTmFte4uPNPejVaB4u$ab.Bfz27H7hDqP1oLcRh9/NLbOlZK5a"
+    },
+    "trail1": {
+        "username": "trail1",
+        "hashed_password": "$bcrypt-sha256$v=2,t=2b,r=12$FVcM2jxq1w.LatT5BRL6me$FRmLTPqXFl9wLRZP/kK77w8ZSdKthbi"
+    },
+    "trial2": {
+        "username": "trial2",
+        "hashed_password": "$bcrypt-sha256$v=2,t=2b,r=12$PIbH.HBSl353PEeLW8vZJu$oqaTDogi4uZKmN7YsTPr/9GJGFbT3mu"
+    },
+    "trial3": {
+        "username": "trial3",
+        "hashed_password": "$bcrypt-sha256$v=2,t=2b,r=12$DlxqKId9HngEeNah13dCyu$sqFYpEsVB0sJrbjPdAbDUHMwafLqhPK"
+    },
+    "trial4": {
+        "username": "trial4",
+        "hashed_password": "$bcrypt-sha256$v=2,t=2b,r=12$76Pg07cTWgeZoUhRYaweeO$Uq3CL4wDwieKzFuMO4qnMQRyXgqgyUW"
     }
 }

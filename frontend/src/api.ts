@@ -106,20 +106,19 @@ export const sendImageQuestion = async (file: File, question: string, chatId: st
 
     return await res.json();
 };
+export async function sendAudio(audio: Blob, chatId: string | null) {
+  const formData = new FormData();
+  formData.append("audio", audio);
+  if (chatId) formData.append("chat_id", chatId);
 
-export const sendAudio = async (audioBlob: Blob): Promise<string> => {
-    const formData = new FormData();
-    formData.append("file", audioBlob, "recording.webm");
+  const res = await fetch("http://127.0.0.1:8000/audio", {
+    method: "POST",
+    body: formData,
+  });
 
-    // STT is currently open/public in backend, but good to have ready
-    const res = await fetch(`${API_BASE}/stt`, {
-        method: "POST",
-        body: formData, 
-    });
-
-    const data = await res.json();
-    return data.text; 
+  return res.json();
 }
+
 
 export const playTTS = async (text: string) => {
   try {

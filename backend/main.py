@@ -196,59 +196,68 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 # --- NEW: PROFILE ENDPOINT (Added for your requirement) ---
 @app.get("/users/me")
-def get_profile(current_user: str = Depends(auth.get_current_user)):
-    """Returns the profile info for the logged-in user."""
+def get_profile(current_user: dict = Depends(auth.get_current_user)):
     return {
-        "username": current_user,
+        "username": current_user["username"],
         "status": "online"
     }
+
+
 
 # =====================
 # 1. MANAGEMENT ENDPOINTS (PROTECTED)
 # =====================
 
 @app.get("/chats")
-def list_chats(current_user: str = Depends(auth.get_current_user)):
-    return mem.get_all_chats(user_id=current_user)
+def list_chats(current_user: dict = Depends(auth.get_current_user)):
+    user_id = current_user["username"]
+    return mem.get_all_chats(user_id=user_id)
 
 @app.post("/chats/new")
-def create_chat(current_user: str = Depends(auth.get_current_user)):
-    return mem.create_new_chat(user_id=current_user)
+def create_chat(current_user: dict = Depends(auth.get_current_user)):
+    user_id = current_user["username"]
+    return mem.create_new_chat(user_id=user_id)
 
 @app.put("/chats/{chat_id}")
-def rename_chat(chat_id: str, req: RenameRequest, current_user: str = Depends(auth.get_current_user)):
-    success = mem.rename_chat(chat_id, req.new_name, user_id=current_user)
+def rename_chat(chat_id: str, req: RenameRequest, current_user: dict = Depends(auth.get_current_user)):
+    user_id = current_user["username"]
+    success = mem.rename_chat(chat_id, req.new_name, user_id=user_id)
     if not success:
         raise HTTPException(status_code=404, detail="Chat not found")
     return {"status": "success", "new_name": req.new_name}
 
 @app.delete("/chats/{chat_id}")
-def delete_chat(chat_id: str, current_user: str = Depends(auth.get_current_user)):
-    success = mem.delete_chat(chat_id, user_id=current_user)
+def delete_chat(chat_id: str, current_user: dict = Depends(auth.get_current_user)):
+    user_id = current_user["username"]
+    success = mem.delete_chat(chat_id, user_id=user_id)
     if not success:
         raise HTTPException(status_code=404, detail="Chat not found")
     return {"status": "success"}
 
+
 @app.get("/chats/{chat_id}/history")
-def get_history(chat_id: str, current_user: str = Depends(auth.get_current_user)):
-    return mem.get_chat_history(chat_id, user_id=current_user)
+def get_history(chat_id: str, current_user: dict = Depends(auth.get_current_user)):
+    user_id = current_user["username"]
+    return mem.get_chat_history(chat_id, user_id=user_id)
+
 
 # =====================
 # 2. CHAT & BRAIN ENDPOINT (PROTECTED)
 # =====================
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(req: ChatRequest, current_user: str = Depends(auth.get_current_user)):
+async def chat_endpoint(req: ChatRequest, current_user: dict = Depends(auth.get_current_user)):
+    user_id = current_user["username"]
     user_text = req.text
     chat_id = req.chat_id
 
     # 1. Handle New Chat creation
     if not chat_id:
-        new_chat = mem.create_new_chat(user_id=current_user)
+        new_chat = mem.create_new_chat(user_id=user_id)
         chat_id = new_chat["chat_id"]
 
     # 2. Get History
-    history_dicts = mem.get_chat_history(chat_id, user_id=current_user)
+    history_dicts = mem.get_chat_history(chat_id, user_id=user_id)
     langchain_history = []
     for h in history_dicts:
         if h["role"] == "human":
@@ -257,7 +266,7 @@ async def chat_endpoint(req: ChatRequest, current_user: str = Depends(auth.get_c
             langchain_history.append(AIMessage(content=h["content"]))
 
     # 3. Get LTM
-    long_term_mem = mem.get_long_term_memory(user_id=current_user)
+    long_term_mem = mem.get_long_term_memory(user_id=user_id)
 
     # 4. FIRST CALL TO BRAIN
     ai_response = brain.get_brain_response(user_text, langchain_history, long_term_mem)
@@ -285,8 +294,8 @@ async def chat_endpoint(req: ChatRequest, current_user: str = Depends(auth.get_c
         else:
             final_answer = "⚠️ Local agent is not running."
 
-        mem.append_to_chat(chat_id, "human", user_text, user_id=current_user)
-        mem.append_to_chat(chat_id, "ai", final_answer, user_id=current_user)
+        mem.append_to_chat(chat_id, "human", user_text, user_id=user_id)
+        mem.append_to_chat(chat_id, "ai", final_answer, user_id=user_id)
         return ChatResponse(response=final_answer, chat_id=chat_id)
 
     # 6. WEB SEARCH HANDLING
@@ -298,7 +307,7 @@ async def chat_endpoint(req: ChatRequest, current_user: str = Depends(auth.get_c
             
             search_context = f"SYSTEM: I have searched Google. Here are the results: {search_results}\n\nUsing these results, answer the user's original question."
             
-            langchain_history.append(HumanMessage(content=user_text))
+
             
             final_answer = brain.get_brain_response(search_context, langchain_history, long_term_mem)
     except Exception as e:
@@ -306,12 +315,12 @@ async def chat_endpoint(req: ChatRequest, current_user: str = Depends(auth.get_c
         final_answer = ai_response
 
     # 7. Save to DB
-    mem.append_to_chat(chat_id, "human", user_text, user_id=current_user)
-    mem.append_to_chat(chat_id, "ai", final_answer, user_id=current_user)
+    mem.append_to_chat(chat_id, "human", user_text, user_id=user_id)
+    mem.append_to_chat(chat_id, "ai", final_answer, user_id=user_id)
 
     # 8. Auto-Save "My Name is"
     if "my name is" in user_text.lower():
-        mem.add_long_term_memory(f"User Mentioned: {user_text}", user_id=current_user)
+        mem.add_long_term_memory(f"User Mentioned: {user_text}", user_id=user_id)
 
     return ChatResponse(response=final_answer, chat_id=chat_id)
 
@@ -323,10 +332,11 @@ async def image_question(
     file: UploadFile = File(...), 
     question: str = Form(...), 
     chat_id: Optional[str] = Form(None),
-    current_user: str = Depends(auth.get_current_user)
+    current_user: dict = Depends(auth.get_current_user)
 ):
+    user_id = current_user["username"]
     if not chat_id:
-        new_chat = mem.create_new_chat(user_id=current_user)
+        new_chat = mem.create_new_chat(user_id=user_id)
         chat_id = new_chat["chat_id"]
 
     contents = await file.read()
@@ -350,8 +360,8 @@ async def image_question(
         detailed_error = error_message if error_message else "Unknown error occurred."
         ai_response = f"I'm sorry, I couldn't see the image. The internal error was: [{detailed_error}]"
         
-        mem.append_to_chat(chat_id, "human", f"[Image: {file.filename}] {question}", user_id=current_user)
-        mem.append_to_chat(chat_id, "ai", ai_response, user_id=current_user)
+        mem.append_to_chat(chat_id, "human", f"[Image: {file.filename}] {question}", user_id=user_id)
+        mem.append_to_chat(chat_id, "ai", ai_response, user_id=user_id)
         return ChatResponse(response=ai_response, chat_id=chat_id)
 
     # Step 2: Send Description to Brain
@@ -364,7 +374,7 @@ async def image_question(
         "Answer the question using the visual description."
     )
 
-    history_dicts = mem.get_chat_history(chat_id, user_id=current_user)
+    history_dicts = mem.get_chat_history(chat_id, user_id=user_id)
     langchain_history = []
     for h in history_dicts:
         if h["role"] == "human":
@@ -372,12 +382,12 @@ async def image_question(
         else:
             langchain_history.append(AIMessage(content=h["content"]))
     
-    long_term_mem = mem.get_long_term_memory(user_id=current_user)
+    long_term_mem = mem.get_long_term_memory(user_id=user_id)
 
     final_answer = brain.get_brain_response(prompt_for_brain, langchain_history, long_term_mem)
 
-    mem.append_to_chat(chat_id, "human", f"[Image: {file.filename}] {question}", user_id=current_user)
-    mem.append_to_chat(chat_id, "ai", final_answer, user_id=current_user)
+    mem.append_to_chat(chat_id, "human", f"[Image: {file.filename}] {question}", user_id=user_id)
+    mem.append_to_chat(chat_id, "ai", final_answer, user_id=user_id)
 
     return ChatResponse(response=final_answer, chat_id=chat_id)
 
@@ -399,29 +409,31 @@ async def speech_to_text(file: UploadFile = File(...)):
     webm_path = f"{uid}.webm"
     wav_path = f"{uid}.wav"
     clean_wav_path = f"{uid}_clean.wav"
-
-    with open(webm_path, "wb") as f:
-        f.write(await file.read())
-
+    
     try:
+        with open(webm_path, "wb") as f:
+            f.write(await file.read())
+
         subprocess.run([
             FFMPEG_PATH, "-y", "-i", webm_path,
             "-ar", "16000", "-ac", "1",
             "-af", "highpass=f=200, lowpass=f=3000, afftdn, silenceremove=stop_periods=-1:stop_threshold=-50dB",
             clean_wav_path
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+        segments, _ = whisper_model.transcribe(clean_wav_path, language="en", vad_filter=True)
+        text = " ".join(s.text for s in segments)
+        
+        return {"text": text.strip()}
+
     except Exception as e:
-        print(f"FFmpeg Error: {e}")
-        return {"error": "FFmpeg conversion failed"}
+        print(f"STT Error: {e}")
+        return {"error": "STT processing failed"}
+    finally:
+        for path in [webm_path, wav_path, clean_wav_path]:
+            if os.path.exists(path):
+                os.remove(path)
 
-    segments, _ = whisper_model.transcribe(clean_wav_path, language="en", vad_filter=True)
-    text = " ".join(s.text for s in segments)
-
-    for path in [webm_path, wav_path, clean_wav_path]:
-        if os.path.exists(path):
-            os.remove(path)
-
-    return {"text": text.strip()}
 
 @app.post("/tts")
 async def text_to_speech(req: TTSRequest):
@@ -432,15 +444,17 @@ async def text_to_speech(req: TTSRequest):
     clean_text = re.sub(r'[*#`_~]', '', text) 
     output_file = f"tts_{uuid.uuid4().hex}.mp3"
     
-    communicate = edge_tts.Communicate(clean_text, "en-GB-RyanNeural")
-    await communicate.save(output_file)
-    
-    with open(output_file, "rb") as f:
-        audio_data = f.read()
-    
-    os.remove(output_file)
-    
-    return StreamingResponse(io.BytesIO(audio_data), media_type="audio/mpeg")
+    try:
+        communicate = edge_tts.Communicate(clean_text, "en-GB-RyanNeural")
+        await communicate.save(output_file)
+        
+        with open(output_file, "rb") as f:
+            audio_data = f.read()
+        
+        return StreamingResponse(io.BytesIO(audio_data), media_type="audio/mpeg")
+    finally:
+        if os.path.exists(output_file):
+            os.remove(output_file)
 
 @app.websocket("/ws/agent")
 async def agent_ws(ws: WebSocket):

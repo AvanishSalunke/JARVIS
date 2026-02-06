@@ -140,7 +140,8 @@ export default function ChatInterface() {
   const handleAudioSubmit = async (audioBlob: Blob) => {
     setIsProcessing(true);
     try {
-      const text = await api.sendAudio(audioBlob);
+      const text = await api.sendAudio(audioBlob, activeChatId);
+
       if (text) {
         addMessage("user", text);
         await processResponse(text);

@@ -2,10 +2,10 @@ import json
 import os
 import uuid
 from datetime import datetime
+from . import memory_manager
 
 # --- CONFIGURATION ---
 CHATS_FILE = "data/chats.json"
-MEMORY_FILE = "data/memory.json"
 
 # Ensure data directory exists
 os.makedirs("data", exist_ok=True)
@@ -15,10 +15,6 @@ def init_db():
     if not os.path.exists(CHATS_FILE):
         with open(CHATS_FILE, "w") as f:
             json.dump({}, f)
-    
-    if not os.path.exists(MEMORY_FILE):
-        with open(MEMORY_FILE, "w") as f:
-            json.dump([], f) # List of memory strings
 
 # --- CHAT MANAGEMENT ---
 def get_all_chats():
@@ -95,18 +91,10 @@ def rename_chat(chat_id, new_title):
         return False
 
 # --- LONG TERM MEMORY ---
-def get_long_term_memory():
-    """Returns the list of core memories."""
-    init_db()
-    with open(MEMORY_FILE, "r") as f:
-        return json.load(f)
+def get_long_term_memory(user_id: str):
+    """Returns the list of core memories for a specific user."""
+    return memory_manager.get_long_term_memory(user_id)
 
-def add_long_term_memory(memory_text):
-    """Adds a new fact to long term memory."""
-    init_db()
-    with open(MEMORY_FILE, "r+") as f:
-        memories = json.load(f)
-        if memory_text not in memories:
-            memories.append(memory_text)
-            f.seek(0)
-            json.dump(memories, f, indent=4)
+def add_long_term_memory(memory_text: str, user_id: str):
+    """Adds a new fact to long term memory for a specific user."""
+    memory_manager.add_long_term_memory(memory_text, user_id)

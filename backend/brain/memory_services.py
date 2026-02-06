@@ -16,16 +16,14 @@ def _get_embedding_function():
         raise ValueError("MISTRAL_API_KEY not found in .env file.")
     return MistralAIEmbeddings(mistral_api_key=api_key)
 
-def get_vector_store():
-    """Initializes and returns the ChromaDB connection."""
+def get_vector_store(user_id: str):
     embeddings = _get_embedding_function()
-    
-    vector_store = Chroma(
-        collection_name=COLLECTION_NAME,
+    return Chroma(
+        collection_name=f"jarvis_memory_{user_id}",
         embedding_function=embeddings,
-        persist_directory=PERSIST_DIRECTORY
+        persist_directory=f"./chroma_db/{user_id}"
     )
-    return vector_store
+
 
 def add_text_to_memory(text: str, vector_store: Chroma):
     """Saves text to the long-term database."""

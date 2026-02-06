@@ -3,6 +3,8 @@ import memory_manager as mem
 import llm_services as brain
 from langchain_core.messages import HumanMessage, AIMessage
 
+DEFAULT_USER_ID = "streamlit_user"
+
 # Page Config
 st.set_page_config(page_title="Jarvis AI", layout="wide")
 
@@ -70,7 +72,7 @@ current_id = st.session_state["current_chat_id"]
 data = mem.load_data()
 chat_data = data["chats"].get(current_id, {"name": "New Chat", "history": []})
 history = chat_data["history"]
-long_term_mem = mem.get_long_term_memory()
+long_term_mem = mem.get_long_term_memory(user_id=DEFAULT_USER_ID)
 
 st.header(f"💬 {chat_data['name']}")
 

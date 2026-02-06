@@ -3,164 +3,176 @@ import os
 import uuid
 from datetime import datetime
 
-# --- CONFIGURATION ---
+# =========================
+# CONFIGURATION
+# =========================
 DATA_DIR = "data"
 USERS_DIR = os.path.join(DATA_DIR, "users")
 
-# Ensure base data directory exists
 os.makedirs(USERS_DIR, exist_ok=True)
 
-# --- HELPER: GET PATHS ---
-def _get_user_paths(user_id):
-    """
-    Generates paths for a specific user's data.
-    Structure: data/users/{username}/chats.json
-    """
-    # Sanitize user_id to prevent path traversal issues
-    safe_uid = "".join([c for c in user_id if c.isalnum() or c in ('-', '_')])
-    user_folder = os.path.join(USERS_DIR, safe_uid)
-    
-    if not os.path.exists(user_folder):
-        os.makedirs(user_folder)
-        
-    return {
-        "chats": os.path.join(user_folder, "chats.json"),
-        "memory": os.path.join(user_folder, "memory.json")
-    }
+# =========================
+# INTERNAL HELPERS
+# =========================
 
-# --- INITIALIZE FILES ---
-def init_db(user_id):
-    """Ensures the user's data files exist."""
-    paths = _get_user_paths(user_id)
-    
-    if not os.path.exists(paths["chats"]):
-        with open(paths["chats"], "w") as f:
+def _sanitize_user_id(user_id: str) -> str:
+    """Prevent path traversal & invalid folder names"""
+    return "".join(c for c in user_id if c.isalnum() or c in ("-", "_"))
+
+def _get_user_dir(user_id: str) -> str:
+    safe_id = _sanitize_user_id(user_id)
+    user_dir = os.path.join(USERS_DIR, safe_id)
+    os.makedirs(user_dir, exist_ok=True)
+    return user_dir
+
+def _get_chats_path(user_id: str) -> str:
+    return os.path.join(_get_user_dir(user_id), "chats.json")
+
+def _get_memory_path(user_id: str) -> str:
+    return os.path.join(_get_user_dir(user_id), "memory.json")
+
+def _ensure_user_files(user_id: str):
+    chats_path = _get_chats_path(user_id)
+    memory_path = _get_memory_path(user_id)
+
+    if not os.path.exists(chats_path):
+        with open(chats_path, "w", encoding="utf-8") as f:
             json.dump({}, f)
-    
-    if not os.path.exists(paths["memory"]):
-        with open(paths["memory"], "w") as f:
+
+    if not os.path.exists(memory_path):
+        with open(memory_path, "w", encoding="utf-8") as f:
             json.dump([], f)
-    return paths
 
-# --- CHAT FUNCTIONS ---
+# =========================
+# PUBLIC INIT
+# =========================
 
-def get_all_chats(user_id):
-    """Returns [{chat_id, name, timestamp}] for the sidebar."""
-    paths = init_db(user_id)
-    try:
-        with open(paths["chats"], "r") as f:
-            data = json.load(f)
-        
-        chat_list = []
-        for chat_id, chat_data in data.items():
-            chat_list.append({
-                "chat_id": chat_id,
-                "name": chat_data.get("title", "New Conversation"),
-                "timestamp": chat_data.get("created_at", "")
-            })
-        
-        # Sort by newest first
-        chat_list.sort(key=lambda x: x["timestamp"], reverse=True)
-        return chat_list
-    except:
-        return []
+def init_db(user_id: str):
+    """Initialize per-user storage"""
+    _ensure_user_files(user_id)
 
-def create_new_chat(user_id):
-    """Creates a new chat and returns {chat_id, name}."""
-    paths = init_db(user_id)
+# =========================
+# CHAT FUNCTIONS
+# =========================
+
+def get_all_chats(user_id: str):
+    """Returns chat list for sidebar"""
+    _ensure_user_files(user_id)
+
+    with open(_get_chats_path(user_id), "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    chats = []
+    for chat_id, chat in data.items():
+        chats.append({
+            "chat_id": chat_id,
+            "name": chat.get("title", "New Conversation"),
+            "timestamp": chat.get("created_at", "")
+        })
+
+    chats.sort(key=lambda x: x["timestamp"], reverse=True)
+    return chats
+
+def create_new_chat(user_id: str):
+    """Create new chat scoped to user"""
+    _ensure_user_files(user_id)
+
     chat_id = uuid.uuid4().hex
-    timestamp = datetime.now().isoformat()
-    title = "New Conversation"
-    
+    now = datetime.utcnow().isoformat()
+
     new_chat = {
-        "title": title,
-        "created_at": timestamp,
+        "title": "New Conversation",
+        "created_at": now,
         "messages": []
     }
-    
-    with open(paths["chats"], "r+") as f:
+
+    path = _get_chats_path(user_id)
+    with open(path, "r+", encoding="utf-8") as f:
         data = json.load(f)
         data[chat_id] = new_chat
         f.seek(0)
         json.dump(data, f, indent=4)
-        
-    return {"chat_id": chat_id, "name": title}
+        f.truncate()
 
-def rename_chat(chat_id, new_name, user_id):
-    """Renames a specific chat for a specific user."""
-    paths = init_db(user_id)
-    try:
-        with open(paths["chats"], "r+") as f:
-            data = json.load(f)
-            if chat_id in data:
-                data[chat_id]["title"] = new_name
-                f.seek(0)
-                json.dump(data, f, indent=4)
-                f.truncate()
-                return True
-    except:
-        pass
-    return False
+    return {"chat_id": chat_id, "name": new_chat["title"]}
 
-def delete_chat(chat_id, user_id):
-    """Deletes a chat for a specific user."""
-    paths = init_db(user_id)
-    try:
-        with open(paths["chats"], "r+") as f:
-            data = json.load(f)
-            if chat_id in data:
-                del data[chat_id]
-                f.seek(0)
-                json.dump(data, f, indent=4)
-                f.truncate()
-                return True
-    except:
-        pass
-    return False
+def rename_chat(chat_id: str, new_name: str, user_id: str):
+    _ensure_user_files(user_id)
+    path = _get_chats_path(user_id)
 
-def get_chat_history(chat_id, user_id):
-    """Returns list of message dicts for a specific user/chat."""
-    paths = init_db(user_id)
-    try:
-        with open(paths["chats"], "r") as f:
-            data = json.load(f)
-            return data.get(chat_id, {}).get("messages", [])
-    except:
-        return []
+    with open(path, "r+", encoding="utf-8") as f:
+        data = json.load(f)
+        if chat_id not in data:
+            return False
 
-def append_to_chat(chat_id, role, content, user_id):
-    """Saves a message to the user's JSON file."""
-    paths = init_db(user_id)
-    try:
-        with open(paths["chats"], "r+") as f:
-            data = json.load(f)
-            if chat_id in data:
-                data[chat_id]["messages"].append({"role": role, "content": content})
-                f.seek(0)
-                json.dump(data, f, indent=4)
-    except:
-        pass
+        data[chat_id]["title"] = new_name
+        f.seek(0)
+        json.dump(data, f, indent=4)
+        f.truncate()
 
-# --- MEMORY FUNCTIONS (User Specific) ---
+    return True
 
-def get_long_term_memory(user_id):
-    """Returns list of memory strings for a specific user."""
-    paths = init_db(user_id)
-    try:
-        with open(paths["memory"], "r") as f:
-            return json.load(f)
-    except:
-        return []
+def delete_chat(chat_id: str, user_id: str):
+    _ensure_user_files(user_id)
+    path = _get_chats_path(user_id)
 
-def add_long_term_memory(memory_text, user_id):
-    """Adds a new string to the user's memory.json."""
-    paths = init_db(user_id)
-    try:
-        with open(paths["memory"], "r+") as f:
-            memories = json.load(f)
-            if memory_text not in memories:
-                memories.append(memory_text)
-                f.seek(0)
-                json.dump(memories, f, indent=4)
-    except:
-        pass
+    with open(path, "r+", encoding="utf-8") as f:
+        data = json.load(f)
+        if chat_id not in data:
+            return False
+
+        del data[chat_id]
+        f.seek(0)
+        json.dump(data, f, indent=4)
+        f.truncate()
+
+    return True
+
+def get_chat_history(chat_id: str, user_id: str):
+    _ensure_user_files(user_id)
+
+    with open(_get_chats_path(user_id), "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    return data.get(chat_id, {}).get("messages", [])
+
+def append_to_chat(chat_id: str, role: str, content: str, user_id: str):
+    _ensure_user_files(user_id)
+    path = _get_chats_path(user_id)
+
+    with open(path, "r+", encoding="utf-8") as f:
+        data = json.load(f)
+        if chat_id not in data:
+            return
+
+        data[chat_id]["messages"].append({
+            "role": role,
+            "content": content,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+
+        f.seek(0)
+        json.dump(data, f, indent=4)
+        f.truncate()
+
+# =========================
+# LONG-TERM MEMORY
+# =========================
+
+def get_long_term_memory(user_id: str):
+    _ensure_user_files(user_id)
+
+    with open(_get_memory_path(user_id), "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def add_long_term_memory(memory_text: str, user_id: str):
+    _ensure_user_files(user_id)
+    path = _get_memory_path(user_id)
+
+    with open(path, "r+", encoding="utf-8") as f:
+        memories = json.load(f)
+        if memory_text not in memories:
+            memories.append(memory_text)
+            f.seek(0)
+            json.dump(memories, f, indent=4)
+            f.truncate()
