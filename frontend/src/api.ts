@@ -12,11 +12,20 @@ export interface ChatMessage {
   content: string;
 }
 
+// --- AUTH HELPER ---
+const getAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem("jarvis_token");
+  return token ? { "Authorization": `Bearer ${token}` } : {};
+};
+
 // --- MANAGEMENT ---
 
 export const fetchChatList = async (): Promise<ChatItem[]> => {
   try {
-    const res = await fetch(`${API_BASE}/chats`);
+    const res = await fetch(`${API_BASE}/chats`, {
+      headers: { ...getAuthHeaders() }
+    });
+    if (res.status === 401) throw new Error("Unauthorized");
     return await res.json();
   } catch (e) {
     console.error("Failed to fetch chats:", e);
@@ -25,17 +34,40 @@ export const fetchChatList = async (): Promise<ChatItem[]> => {
 };
 
 export const createNewChat = async (): Promise<ChatItem> => {
-  const res = await fetch(`${API_BASE}/chats/new`, { method: "POST" });
+  const res = await fetch(`${API_BASE}/chats/new`, { 
+    method: "POST",
+    headers: { ...getAuthHeaders() }
+  });
   return await res.json();
 };
 
 export const fetchChatHistory = async (chatId: string): Promise<ChatMessage[]> => {
-  const res = await fetch(`${API_BASE}/chats/${chatId}/history`);
+  const res = await fetch(`${API_BASE}/chats/${chatId}/history`, {
+    headers: { ...getAuthHeaders() }
+  });
   return await res.json();
 };
 
 export const deleteChat = async (chatId: string) => {
-  await fetch(`${API_BASE}/chats/${chatId}`, { method: "DELETE" });
+  await fetch(`${API_BASE}/chats/${chatId}`, { 
+    method: "DELETE",
+    headers: { ...getAuthHeaders() }
+  });
+};
+
+export const renameChat = async (chatId: string, newName: string) => {
+  try {
+    await fetch(`${API_BASE}/chats/${chatId}`, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({ new_name: newName }),
+    });
+  } catch (error) {
+    console.error("Error renaming chat:", error);
+  }
 };
 
 // --- CORE INTERACTION ---
@@ -43,14 +75,52 @@ export const deleteChat = async (chatId: string) => {
 export const sendMessage = async (text: string, chatId: string | null) => {
   const res = await fetch(`${API_BASE}/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    // FIX 1: Send "chatId" (camelCase) to match Backend Pydantic Alias
+    headers: { 
+        "Content-Type": "application/json",
+        ...getAuthHeaders()
+    },
     body: JSON.stringify({ text, chatId: chatId }),
   });
+  
+  if (res.status === 401) {
+    window.location.href = "/login"; // Force redirect if token expires
+  }
   return await res.json();
 };
 
-// FIX 2: Added Missing TTS Function
+// --- MULTIMEDIA (Vision/Voice) ---
+
+export const sendImageQuestion = async (file: File, question: string, chatId: string | null) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("question", question);
+    if (chatId) form.append("chat_id", chatId);
+
+    // Note: Fetch handles Content-Type for FormData automatically, 
+    // but we still need to append the Authorization header.
+    const res = await fetch(`${API_BASE}/image_qa`, {
+        method: "POST",
+        headers: { ...getAuthHeaders() }, 
+        body: form,
+    });
+
+    return await res.json();
+};
+
+export const sendAudio = async (audioBlob: Blob): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", audioBlob, "recording.webm");
+
+    // STT is currently open/public in backend, but good to have ready
+    const res = await fetch(`${API_BASE}/stt`, {
+        method: "POST",
+        body: formData, 
+    });
+
+    const data = await res.json();
+    return data.text; 
+}
+
 export const playTTS = async (text: string) => {
   try {
     const res = await fetch(`${API_BASE}/tts`, {
@@ -61,54 +131,11 @@ export const playTTS = async (text: string) => {
 
     if (!res.ok) throw new Error("TTS Generation failed");
 
-    // Convert the response blob (audio file) into a playable URL
     const blob = await res.blob();
     const audioUrl = URL.createObjectURL(blob);
     const audio = new Audio(audioUrl);
-    
-    // Play immediately
     audio.play();
   } catch (e) {
     console.error("Audio Playback Error:", e);
   }
-};
-
-export const renameChat = async (chatId: string, newName: string) => {
-  try {
-    await fetch(`${API_BASE}/chats/${chatId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ new_name: newName }),
-    });
-  } catch (error) {
-    console.error("Error renaming chat:", error);
-  }
-};
-
-export const sendAudio = async (audioBlob: Blob): Promise<string> => {
-    const formData = new FormData();
-    formData.append("file", audioBlob, "recording.webm");
-
-    const res = await fetch(`${API_BASE}/stt`, {
-        method: "POST",
-        body: formData, // No JSON headers for file upload
-    });
-
-    const data = await res.json();
-    return data.text; 
-}
-
-// Sends an image file and a question to the backend and returns the chat response
-export const sendImageQuestion = async (file: File, question: string, chatId: string | null) => {
-    const form = new FormData();
-    form.append("file", file);
-    form.append("question", question);
-    if (chatId) form.append("chat_id", chatId);
-
-    const res = await fetch(`${API_BASE}/image_qa`, {
-        method: "POST",
-        body: form,
-    });
-
-    return await res.json();
 };

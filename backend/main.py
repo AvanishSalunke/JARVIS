@@ -1,7 +1,16 @@
 import sys
 import pathlib
-import json  
+import json   
 import asyncio
+import os
+import io
+import uuid
+import subprocess
+import edge_tts 
+import re
+import shutil
+from contextlib import asynccontextmanager
+
 # Allow running this file directly from the `backend/` directory for convenience.
 if __package__ is None:
     repo_root = pathlib.Path(__file__).resolve().parent.parent
@@ -9,49 +18,72 @@ if __package__ is None:
     if repo_root_str not in sys.path:
         sys.path.insert(0, repo_root_str)
 
-import os
-import io
-import uuid
-import subprocess
-import edge_tts 
-import re
-from fastapi import FastAPI, UploadFile, File, HTTPException, Body, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Body, Form, Depends, status, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from fastapi import WebSocket
+from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from typing import Optional, List
+from faster_whisper import WhisperModel
 
 # =====================
 # IMPORTS
 # =====================
 from backend.brain import memory_manager as mem
 from backend.brain import llm_services as brain
-from backend.brain import web_search as searcher  
+from backend.brain import web_search as searcher    
+from backend import auth 
+
 from langchain_core.messages import HumanMessage, AIMessage
-from faster_whisper import WhisperModel
 
 # =====================
-# CONFIG
+# CONFIG & LIFESPAN
 # =====================
-import shutil
 FFMPEG_PATH = shutil.which("ffmpeg") or r"C:\ffmpeg\bin\ffmpeg.exe"
-app = FastAPI()
-
+AGENT_PATH = os.path.join(os.path.dirname(__file__), "agent.exe")
 connected_agent = None
 agent_lock = asyncio.Lock()
 
-AGENT_PATH = os.path.join(os.path.dirname(__file__), "agent.exe")
+# Global Model Variables
+whisper_model = None
 
-def start_agent():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- STARTUP LOGIC ---
+    print("🚀 JARVIS Systems Initializing...")
+    
+    # 1. Start Local Agent
     try:
-        subprocess.Popen(AGENT_PATH)
-        print("🚀 Local agent started automatically")
+        if os.path.exists(AGENT_PATH):
+            subprocess.Popen(AGENT_PATH)
+            print("🚀 Local agent started automatically")
     except Exception as e:
         print("❌ Failed to start agent:", e)
 
-start_agent()
+    # 2. Load Whisper
+    global whisper_model
+    print("⏳ Loading Whisper Model...")
+    whisper_model = WhisperModel("small.en", device="cpu", compute_type="int8")
+    print("✅ Whisper Model Loaded!")
 
+    # 3. Preload Multimodal
+    print("⏳ Preloading Multimodal Model...")
+    try:
+        from backend.brain import local_multimodal
+        if local_multimodal.is_available():
+            local_multimodal._init_model()
+            print("✅ Multimodal Model Preloaded!")
+        else:
+            print("⚠️ Multimodal Model not available")
+    except Exception as e:
+        print(f"⚠️ Failed to preload multimodal model: {e}")
+
+    yield
+    # --- SHUTDOWN LOGIC ---
+    print("🛑 JARVIS Systems Shutting Down...")
+
+# --- APP INITIALIZATION (DO THIS ONLY ONCE) ---
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,23 +91,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Load Whisper once on startup
-print("⏳ Loading Whisper Model...")
-whisper_model = WhisperModel("small.en", device="cpu", compute_type="int8")
-print("✅ Whisper Model Loaded!")
-
-# Preload multimodal model
-print("⏳ Preloading Multimodal Model...")
-try:
-    from backend.brain import local_multimodal
-    if local_multimodal.is_available():
-        local_multimodal._init_model()
-        print("✅ Multimodal Model Preloaded!")
-    else:
-        print("⚠️ Multimodal Model not available")
-except Exception as e:
-    print(f"⚠️ Failed to preload multimodal model: {e}")
 
 # =====================
 # REQUEST MODELS
@@ -94,6 +109,10 @@ class RenameRequest(BaseModel):
 class TTSRequest(BaseModel):
     text: str
 
+class SignupRequest(BaseModel):
+    username: str
+    password: str
+
 # =====================
 # HELPER FUNCTIONS
 # =====================
@@ -102,83 +121,103 @@ def extract_first_json(text):
     start = text.find("{")
     if start == -1:
         return None
-
     brace_count = 0
     for i in range(start, len(text)):
         if text[i] == "{":
             brace_count += 1
         elif text[i] == "}":
             brace_count -= 1
-
-        # When braces balance, we found the matching }
         if brace_count == 0:
             return text[start:i+1]
-
     return None 
 
 def perform_search(query):
-    """
-    Executes the real web search using the tool from web_searcher.py
-    """
     print(f"🔎 Jarvis is searching the web for: {query}")
-    
-    # Get the tool from your new web_searcher.py
     tool = searcher.get_search_tool()
-    
     try:
-        # Run the search
         result = tool.func(query)
-        # Trim if result is massive to save tokens
         return str(result)[:2000] if len(str(result)) > 2000 else str(result)
     except Exception as e:
         print(f"❌ Search Error: {e}")
         return "I attempted to search but encountered an error."
 
 # =====================
-# 1. MANAGEMENT ENDPOINTS
+# 0. AUTH ENDPOINTS
+# =====================
+
+@app.post("/signup")
+def signup(user: SignupRequest):
+    """Register a new user."""
+    # Check if user exists
+    if auth.get_user(user.username):
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    auth.create_user_in_db(user.username, user.password)
+    return {"status": "success", "message": "User created successfully"}
+
+@app.post("/token")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    """Standard OAuth2 login endpoint."""
+    # FIXED: Was 'get_user_from_db', changed to 'get_user'
+    user = auth.get_user(form_data.username)
+    
+    if not user or not auth.verify_password(form_data.password, user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token = auth.create_access_token(data={"sub": user["username"]})
+    return {"access_token": access_token, "token_type": "bearer", "username": user["username"]}
+
+
+# =====================
+# 1. MANAGEMENT ENDPOINTS (PROTECTED)
 # =====================
 
 @app.get("/chats")
-def list_chats():
-    return mem.get_all_chats()
+def list_chats(current_user: str = Depends(auth.get_current_user)):
+    return mem.get_all_chats(user_id=current_user)
 
 @app.post("/chats/new")
-def create_chat():
-    return mem.create_new_chat()
+def create_chat(current_user: str = Depends(auth.get_current_user)):
+    return mem.create_new_chat(user_id=current_user)
 
 @app.put("/chats/{chat_id}")
-def rename_chat(chat_id: str, req: RenameRequest):
-    success = mem.rename_chat(chat_id, req.new_name)
+def rename_chat(chat_id: str, req: RenameRequest, current_user: str = Depends(auth.get_current_user)):
+    success = mem.rename_chat(chat_id, req.new_name, user_id=current_user)
     if not success:
         raise HTTPException(status_code=404, detail="Chat not found")
     return {"status": "success", "new_name": req.new_name}
 
 @app.delete("/chats/{chat_id}")
-def delete_chat(chat_id: str):
-    success = mem.delete_chat(chat_id)
+def delete_chat(chat_id: str, current_user: str = Depends(auth.get_current_user)):
+    success = mem.delete_chat(chat_id, user_id=current_user)
     if not success:
         raise HTTPException(status_code=404, detail="Chat not found")
     return {"status": "success"}
 
 @app.get("/chats/{chat_id}/history")
-def get_history(chat_id: str):
-    return mem.get_chat_history(chat_id)
+def get_history(chat_id: str, current_user: str = Depends(auth.get_current_user)):
+    return mem.get_chat_history(chat_id, user_id=current_user)
 
 # =====================
-# 2. CHAT & BRAIN ENDPOINT (UPDATED FOR SEARCH)
+# 2. CHAT & BRAIN ENDPOINT (PROTECTED)
 # =====================
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(req: ChatRequest):
+async def chat_endpoint(req: ChatRequest, current_user: str = Depends(auth.get_current_user)):
     user_text = req.text
     chat_id = req.chat_id
 
+    # 1. Handle New Chat creation
     if not chat_id:
-        new_chat = mem.create_new_chat()
+        new_chat = mem.create_new_chat(user_id=current_user)
         chat_id = new_chat["chat_id"]
 
-    # 1. Get History
-    history_dicts = mem.get_chat_history(chat_id)
+    # 2. Get History
+    history_dicts = mem.get_chat_history(chat_id, user_id=current_user)
     langchain_history = []
     for h in history_dicts:
         if h["role"] == "human":
@@ -186,23 +225,22 @@ async def chat_endpoint(req: ChatRequest):
         else:
             langchain_history.append(AIMessage(content=h["content"]))
 
-    # 2. Get LTM
-    long_term_mem = mem.get_long_term_memory()
+    # 3. Get LTM
+    long_term_mem = mem.get_long_term_memory(user_id=current_user)
 
-    # 3. FIRST CALL TO BRAIN
+    # 4. FIRST CALL TO BRAIN
     ai_response = brain.get_brain_response(user_text, langchain_history, long_term_mem)
     ai_response = ai_response.replace("```json", "").replace("```", "")
+    
     tool_data = None
     try:
-
-        
         json_str = extract_first_json(ai_response)
-
         if json_str:
             tool_data = json.loads(json_str)
     except Exception as e:
         print("JSON parse fail:", e)
 
+    # 5. AGENT HANDLING
     if isinstance(tool_data, dict) and "action" in tool_data:
         print("📤 Sending command to agent:", tool_data)
 
@@ -216,92 +254,73 @@ async def chat_endpoint(req: ChatRequest):
         else:
             final_answer = "⚠️ Local agent is not running."
 
-        mem.append_to_chat(chat_id, "human", user_text)
-        mem.append_to_chat(chat_id, "ai", final_answer)
+        mem.append_to_chat(chat_id, "human", user_text, user_id=current_user)
+        mem.append_to_chat(chat_id, "ai", final_answer, user_id=current_user)
         return ChatResponse(response=final_answer, chat_id=chat_id)
 
-    # 4. CHECK FOR TOOL CALL (The "Sticky Note")
-    # We look for a JSON object containing "query"
+    # 6. WEB SEARCH HANDLING
     final_answer = ai_response
-    
     try:
-        if "{" in ai_response and "query" in ai_response:
-            # Try to parse the JSON
-            start_index = ai_response.find("{")
-            end_index = ai_response.rfind("}") + 1
-            json_str = ai_response[start_index:end_index]
+        if isinstance(tool_data, dict) and "query" in tool_data:
+            search_query = tool_data["query"]
+            search_results = perform_search(search_query)
             
-            tool_data = json.loads(json_str)
+            search_context = f"SYSTEM: I have searched Google. Here are the results: {search_results}\n\nUsing these results, answer the user's original question."
             
-            if "query" in tool_data:
-                search_query = tool_data["query"]
-                
-                # PERFORM THE SEARCH
-                search_results = perform_search(search_query)
-                
-                # 5. SECOND CALL TO BRAIN (With results)
-                # We feed the search results back as a system message or a new user prompt
-                search_context = f"SYSTEM: I have searched Google. Here are the results: {search_results}\n\nUsing these results, answer the user's original question."
-                
-                # Append the "thought" process to history temporarily for this request
-                langchain_history.append(HumanMessage(content=user_text))
-                langchain_history.append(AIMessage(content=ai_response)) # The JSON request
-                
-                final_answer = brain.get_brain_response(search_context, langchain_history, long_term_mem)
+            langchain_history.append(HumanMessage(content=user_text))
             
-      
-            
-
+            final_answer = brain.get_brain_response(search_context, langchain_history, long_term_mem)
     except Exception as e:
         print(f"⚠️ Tool call parsing failed, returning original response. Error: {e}")
-        # If parsing fails, we just return the original text (which might be raw JSON, but better than crashing)
         final_answer = ai_response
 
-    # 6. Save to DB (Only the final human text and final AI answer)
-    mem.append_to_chat(chat_id, "human", user_text)
-    mem.append_to_chat(chat_id, "ai", final_answer)
+    # 7. Save to DB
+    mem.append_to_chat(chat_id, "human", user_text, user_id=current_user)
+    mem.append_to_chat(chat_id, "ai", final_answer, user_id=current_user)
 
-    # 7. Auto-Save "My Name is"
+    # 8. Auto-Save "My Name is"
     if "my name is" in user_text.lower():
-        mem.add_long_term_memory(f"User Mentioned: {user_text}")
+        mem.add_long_term_memory(f"User Mentioned: {user_text}", user_id=current_user)
 
     return ChatResponse(response=final_answer, chat_id=chat_id)
 
 # =====================
-# 3. IMAGE QUESTION ENDPOINT
+# 3. IMAGE QUESTION ENDPOINT (PROTECTED)
 # =====================
 @app.post("/image_qa", response_model=ChatResponse)
-async def image_question(file: UploadFile = File(...), question: str = Form(...), chat_id: Optional[str] = Form(None)):
+async def image_question(
+    file: UploadFile = File(...), 
+    question: str = Form(...), 
+    chat_id: Optional[str] = Form(None),
+    current_user: str = Depends(auth.get_current_user)
+):
     if not chat_id:
-        new_chat = mem.create_new_chat()
+        new_chat = mem.create_new_chat(user_id=current_user)
         chat_id = new_chat["chat_id"]
 
     contents = await file.read()
 
     # Step 1: Get the Image Description
     image_description = None
-    error_message = None  # Store the error
+    error_message = None 
     
     try:
         from backend.brain import local_multimodal
         if local_multimodal and local_multimodal.is_available():
-            # Pass None to get a generic description
             image_description, error_message = local_multimodal.analyze_image_with_local_llm(contents, None)
         else:
             error_message = "Local multimodal module not available or imports missing."
-            
     except Exception as e:
         error_message = f"Crash in image analysis: {str(e)}"
         print(f"Multimodal analysis error: {e}")
 
     # If it failed, TELL US WHY
     if not image_description:
-        # Use the actual error message if we have one
         detailed_error = error_message if error_message else "Unknown error occurred."
         ai_response = f"I'm sorry, I couldn't see the image. The internal error was: [{detailed_error}]"
         
-        mem.append_to_chat(chat_id, "human", f"[Image: {file.filename}] {question}")
-        mem.append_to_chat(chat_id, "ai", ai_response)
+        mem.append_to_chat(chat_id, "human", f"[Image: {file.filename}] {question}", user_id=current_user)
+        mem.append_to_chat(chat_id, "ai", ai_response, user_id=current_user)
         return ChatResponse(response=ai_response, chat_id=chat_id)
 
     # Step 2: Send Description to Brain
@@ -314,7 +333,7 @@ async def image_question(file: UploadFile = File(...), question: str = Form(...)
         "Answer the question using the visual description."
     )
 
-    history_dicts = mem.get_chat_history(chat_id)
+    history_dicts = mem.get_chat_history(chat_id, user_id=current_user)
     langchain_history = []
     for h in history_dicts:
         if h["role"] == "human":
@@ -322,12 +341,12 @@ async def image_question(file: UploadFile = File(...), question: str = Form(...)
         else:
             langchain_history.append(AIMessage(content=h["content"]))
     
-    long_term_mem = mem.get_long_term_memory()
+    long_term_mem = mem.get_long_term_memory(user_id=current_user)
 
     final_answer = brain.get_brain_response(prompt_for_brain, langchain_history, long_term_mem)
 
-    mem.append_to_chat(chat_id, "human", f"[Image: {file.filename}] {question}")
-    mem.append_to_chat(chat_id, "ai", final_answer)
+    mem.append_to_chat(chat_id, "human", f"[Image: {file.filename}] {question}", user_id=current_user)
+    mem.append_to_chat(chat_id, "ai", final_answer, user_id=current_user)
 
     return ChatResponse(response=final_answer, chat_id=chat_id)
 
@@ -340,7 +359,7 @@ def service_status():
         return {"error": str(e)}
 
 # =====================
-# 4. VOICE ENDPOINTS
+# 4. VOICE ENDPOINTS (OPEN)
 # =====================
 
 @app.post("/stt")
@@ -350,16 +369,10 @@ async def speech_to_text(file: UploadFile = File(...)):
     wav_path = f"{uid}.wav"
     clean_wav_path = f"{uid}_clean.wav"
 
-    # Save uploaded file
     with open(webm_path, "wb") as f:
         f.write(await file.read())
 
     try:
-        # Convert webm -> wav (16kHz mono) with noise reduction and trimming silence
-        # -af "highpass, lowpass, afftdn, silenceremove"
-        # highpass & lowpass: filter extreme frequencies
-        # afftdn: noise reduction
-        # silenceremove: trims silence at start/end
         subprocess.run([
             FFMPEG_PATH, "-y", "-i", webm_path,
             "-ar", "16000", "-ac", "1",
@@ -370,11 +383,9 @@ async def speech_to_text(file: UploadFile = File(...)):
         print(f"FFmpeg Error: {e}")
         return {"error": "FFmpeg conversion failed"}
 
-    # Transcribe with Whisper (VAD optional)
     segments, _ = whisper_model.transcribe(clean_wav_path, language="en", vad_filter=True)
     text = " ".join(s.text for s in segments)
 
-    # Cleanup files
     for path in [webm_path, wav_path, clean_wav_path]:
         if os.path.exists(path):
             os.remove(path)
@@ -423,9 +434,6 @@ def agent_status():
     return {"connected": connected_agent is not None}
 
 
-# =====================
-# RUNNER
-# =====================
 if __name__ == "__main__":
     import uvicorn
     print("🚀 JARVIS Backend running on http://127.0.0.1:8000")
