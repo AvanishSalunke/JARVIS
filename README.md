@@ -1,12 +1,14 @@
-# JARVIS - AI Personal Assistant
+<h1 align="center">JARVIS</h1>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
 
+<p align="justify">
 JARVIS is an AI-powered personal assistant designed to bridge the gap between intelligence and execution. Unlike conventional assistants that stop at conversation, JARVIS extends its capabilities into your local operating system - opening applications, managing system controls, navigating the web, and responding visually to the world around it.
 
 At its core, JARVIS is a modular, locally-aware AI system that combines cloud-level reasoning with on-device control. It listens, understands, decides, and does things, bringing the concept of a truly functional AI assistant closer to reality.
+</p>
 
 ##  Tech Stack
 
@@ -41,45 +43,51 @@ graph TD
     Agent --Action--> OS[💻 System / OS]
 ```
 
+## 🧩 Core Modules
+
+JARVIS is built on three primary components that work together to understand, analyze, and execute user commands.
+
+---
+
 ### 🧠 1. AI Brain Layer
-The **central intelligence** of the system responsible for reasoning, understanding, and orchestration.
+**The intelligence core that thinks, decides, and orchestrates actions.**
 
 **Powered by:** Groq LLM
 
-This layer acts as the **decision-maker**. It analyzes user input, determines intent, and routes tasks to the appropriate module.
+The AI Brain acts as the **central decision engine**. It interprets user input, understands intent, and determines the appropriate course of action.
 
-**Key Responsibilities:**
-- **Natural Language Understanding:** Interprets complex user queries.
-- **Decision Making:** Determines whether to chat, look, or act.
-- **Task Routing:** Directs tasks to the Vision Module or Local Agent.
+**Responsibilities:**
+1. **Natural Language Understanding:** Interprets complex and conversational queries.
+2. **Decision Engine:** Chooses whether to respond, analyze visuals, or execute a command.
+3. **Task Routing:** Directs requests to the Vision Module or Local Agent.
 
 ---
 
 ### 👁️ 2. Vision Module
-The **visual cortex** that enables the system to interpret images.
+**The perception system that allows JARVIS to “see” and understand images.**
 
 **Powered by:** BLIP (Image Captioning)
 
-When an image is uploaded, this module converts visual data into text that the AI Brain can process.
+This module converts visual input into meaningful textual descriptions that the AI Brain can process and reason about.
 
-**Key Capabilities:**
-- **Image-to-Text:** Generates meaningful descriptions of images.
-- **Visual Question Answering (VQA):** Allows users to ask questions about images.
-- **Scene Understanding:** Analyzes context and objects within visual inputs.
+**Capabilities:**
+1. **Image-to-Text Conversion:** Generates accurate image descriptions.
+2. **Visual Question Answering (VQA):** Answers questions based on image content.
+3. **Scene Analysis:** Identifies objects, context, and relationships.
 
 ---
 
 ### ⚙️ 3. Local Agent
-The **execution layer** that interacts directly with the Operating System.
+**The action layer that interacts directly with the operating system.**
 
 **Runs on:** Local Host (Low latency & secure)
 
-This module allows JARVIS to move from **understanding** to **action** by executing commands on the user’s machine.
+The Local Agent transforms decisions into **real system actions**, enabling JARVIS to control applications and system settings.
 
-**Core Functions:**
-- **App Management:** Open, close, and manage applications.
-- **System Controls:** Adjust volume, brightness, and power settings.
-- **Web Automation:** Launch websites and perform browser actions.
+**Functions:**
+1. **Application Control:** Open, close, and manage programs.
+2. **System Adjustments:** Modify volume, brightness, and power settings.
+3. **Web Automation:** Launch websites and perform browser tasks.
 
 ---
 ## 📂 Project Structure
