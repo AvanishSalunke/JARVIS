@@ -9,7 +9,7 @@ client = TestClient(app)
 
 
 def test_image_qa_uses_local_llm(monkeypatch):
-    # Arrange: simulate local multimodal LLM available
+    # simulate local multimodal LLM available
     from backend.brain import local_multimodal as lm
 
     monkeypatch.setattr(lm, "is_available", lambda: True)

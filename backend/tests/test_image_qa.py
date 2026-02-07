@@ -12,7 +12,7 @@ client = TestClient(app)
 
 
 def test_image_qa_multimodal_success(monkeypatch):
-    # Arrange: patch the multimodal analyzer
+    # patch the multimodal analyzer
     def fake_analyze(b, q):
         return ("A dog wearing a blue collar sitting on grass", None)
 
@@ -20,7 +20,7 @@ def test_image_qa_multimodal_success(monkeypatch):
     monkeypatch.setattr(lm, "is_available", lambda: True)
     monkeypatch.setattr(lm, "analyze_image_with_local_llm", fake_analyze)
 
-    # Act: send a fake image file and question
+    # send a fake image file and question
     files = {"file": ("dog.jpg", io.BytesIO(b"fakeimagebytes"), "image/jpeg")}
     data = {"question": "What color is the collar?", "chat_id": None}
 

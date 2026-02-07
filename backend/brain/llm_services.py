@@ -10,13 +10,11 @@ if _dotenv_path.exists():
 else:
     load_dotenv()
 
-# --- IMPORTS ---
-# Note: If Pylance complains, ensure you have run: 
-# pip install langchain-groq langchain-core langchain-community
+# IMPORTS 
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
-# --- LOAD ENVIRONMENT VARIABLES ---
+# LOAD ENVIRONMENT VARIABLES
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 class Brain:
@@ -32,14 +30,14 @@ class Brain:
             return
 
         try:
-            # 1. Initialize Groq (Llama 3.3 is very fast/smart)
+            # Initialize Groq 
             self.llm = ChatGroq(
                 groq_api_key=groq_key,
                 model_name="llama-3.3-70b-versatile",
                 temperature=0.3,
             )
 
-            # 2. UPDATED SYSTEM MESSAGE (The Fix)
+            # UPDATED SYSTEM MESSAGE (
             # This teaches Jarvis to output JSON when he needs to search
             self.system_message_text = (
                 "You are J.A.R.V.I.S, a precise and intelligent AI assistant.\n\n"
@@ -103,7 +101,7 @@ class Brain:
             self._init_error = str(e)
 
     def generate_response(self, user_text, chat_history=[], context=""):
-        # 1. Convert Chat History
+        # Convert Chat History
         formatted_history = []
 
         if context:
@@ -190,7 +188,7 @@ def get_brain_response(user_input: str, chat_history: list, long_term_memory: li
     return resp
 
 
-# --- STATUS CHECK ---
+# STATUS CHECK
 def check_status() -> dict:
     """Return a lightweight status dict describing model availability."""
     # Local multimodal availability is cheap to check

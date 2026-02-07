@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_core.tools import Tool
 
-# 1. Load environment variables explicitly
+# Load environment variables explicitly
 load_dotenv()
 
 def get_search_tool():
@@ -13,7 +13,7 @@ def get_search_tool():
     """
     api_key = os.getenv("SERPER_API_KEY")
 
-    # 2. Check if the key exists before trying to initialize
+    # Check if the key exists before trying to initialize
     if not api_key:
         print("⚠️ Warning: SERPER_API_KEY not found in .env file.")
         def _disabled_search(query: str):
@@ -26,7 +26,7 @@ def get_search_tool():
         )
 
     try:
-        # 3. Initialize Serper
+        # Initialize Serper
         # k=5 means it returns the top 5 results
         search = GoogleSerperAPIWrapper(k=5)
         

@@ -43,7 +43,7 @@ def analyze_image_with_local_llm(image_bytes, user_question=None):
     """
     global _model, _processor
 
-    # 1. Ensure model is loaded
+    # Ensure model is loaded
     if _model is None:
         _init_model()
     
@@ -51,19 +51,19 @@ def analyze_image_with_local_llm(image_bytes, user_question=None):
         return None, "Vision model could not be loaded."
 
     try:
-        # 2. Convert bytes to PIL Image
+        # Convert bytes to PIL Image
         raw_image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
 
-        # 3. Prepare inputs
+        # Prepare inputs
         # If the user asked a specific question, we condition the generation on that text.
         text_input = user_question if user_question else "a photography of"
         
         inputs = _processor(raw_image, text_input, return_tensors="pt")
 
-        # 4. Generate response
+        # Generate response
         out = _model.generate(**inputs, max_new_tokens=50)
         
-        # 5. Decode
+        # Decode
         caption = _processor.decode(out[0], skip_special_tokens=True)
         
         return caption, None

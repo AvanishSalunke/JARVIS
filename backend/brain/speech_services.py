@@ -8,13 +8,10 @@ import whisper
 import soundfile as sf
 import numpy as np
 
-# --- CRITICAL FIX START ---
-# This must run before importing SpeechBrain to prevent crash on Windows
 if not hasattr(torchaudio, "list_audio_backends"):
     def _list_audio_backends():
         return ["soundfile"]
     torchaudio.list_audio_backends = _list_audio_backends
-# --- CRITICAL FIX END ---
 
 from speechbrain.inference import EncoderClassifier
 from transformers import SpeechT5Processor, SpeechT5ForTextToSpeech, SpeechT5HifiGan

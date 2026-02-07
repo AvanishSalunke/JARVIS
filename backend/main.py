@@ -3,23 +3,22 @@ import sys
 import warnings
 import logging
 
-# --- SILENCE WARNINGS (Updated) ---
-# 1. Silence HuggingFace Hub (Fixes "unauthenticated requests" warning)
+# SILENCE WARNINGS (Updated)
+# Silence HuggingFace Hub (Fixes "unauthenticated requests" warning)
 os.environ["HF_HUB_VERBOSITY"] = "error" 
 os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
 
-# 2. Silence Transformers & TensorFlow
+# Silence Transformers & TensorFlow
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3" 
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 
-# 3. Force Python Logger to ignore HF warnings
+# Force Python Logger to ignore HF warnings
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 logging.getLogger("transformers").setLevel(logging.ERROR)
 
-# 4. Filter Deprecation Warnings (LangChain/Pydantic)
+# Filter Deprecation Warnings (LangChain/Pydantic)
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
-# ------------------------
 
 import sys
 import pathlib
@@ -49,9 +48,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from faster_whisper import WhisperModel
 
-# =====================
 # IMPORTS
-# =====================
 from backend.brain import memory_manager as mem
 from backend.brain import llm_services as brain
 from backend.brain import web_search as searcher     
@@ -59,9 +56,7 @@ from backend import auth
 
 from langchain_core.messages import HumanMessage, AIMessage
 
-# =====================
 # CONFIG & LIFESPAN
-# =====================
 FFMPEG_PATH = shutil.which("ffmpeg") or r"C:\ffmpeg\bin\ffmpeg.exe"
 AGENT_PATH = os.path.join(os.path.dirname(__file__), "agent.exe")
 connected_agent = None
@@ -72,10 +67,10 @@ whisper_model = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # --- STARTUP LOGIC ---
+    # STARTUP LOGIC
     print("🚀 JARVIS Systems Initializing...")
     
-    # 1. Start Local Agent
+    # Start Local Agent
     try:
         if os.path.exists(AGENT_PATH):
             subprocess.Popen(AGENT_PATH)
@@ -83,13 +78,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print("❌ Failed to start agent:", e)
 
-    # 2. Load Whisper
+    # Load Whisper
     global whisper_model
     print("⏳ Loading Whisper Model...")
     whisper_model = WhisperModel("small.en", device="cpu", compute_type="int8")
     print("✅ Whisper Model Loaded!")
 
-    # 3. Preload Multimodal
+    # Preload Multimodal
     print("⏳ Preloading Multimodal Model...")
     try:
         from backend.brain import local_multimodal
@@ -102,10 +97,10 @@ async def lifespan(app: FastAPI):
         print(f"⚠️ Failed to preload multimodal model: {e}")
 
     yield
-    # --- SHUTDOWN LOGIC ---
+    # SHUTDOWN LOGIC
     print("🛑 JARVIS Systems Shutting Down...")
 
-# --- APP INITIALIZATION (DO THIS ONLY ONCE) ---
+# APP INITIALIZATION (DO THIS ONLY ONCE)
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
@@ -115,9 +110,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =====================
 # REQUEST MODELS
-# =====================
 class ChatRequest(BaseModel):
     text: str
     chat_id: Optional[str] = Field(None, alias="chatId") 
@@ -136,10 +129,7 @@ class SignupRequest(BaseModel):
     username: str
     password: str
 
-# =====================
 # HELPER FUNCTIONS
-# =====================
-
 def extract_first_json(text):
     start = text.find("{")
     if start == -1:
@@ -164,10 +154,7 @@ def perform_search(query):
         print(f"❌ Search Error: {e}")
         return "I attempted to search but encountered an error."
 
-# =====================
 # 0. AUTH ENDPOINTS
-# =====================
-
 @app.post("/signup")
 def signup(user: SignupRequest):
     """Register a new user."""
@@ -194,7 +181,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token = auth.create_access_token(data={"sub": user["username"]})
     return {"access_token": access_token, "token_type": "bearer", "username": user["username"]}
 
-# --- NEW: PROFILE ENDPOINT (Added for your requirement) ---
+# PROFILE ENDPOINT (Added for your requirement) 
 @app.get("/users/me")
 def get_profile(current_user: dict = Depends(auth.get_current_user)):
     return {
@@ -204,10 +191,7 @@ def get_profile(current_user: dict = Depends(auth.get_current_user)):
 
 
 
-# =====================
-# 1. MANAGEMENT ENDPOINTS (PROTECTED)
-# =====================
-
+# MANAGEMENT ENDPOINTS (PROTECTED)
 @app.get("/chats")
 def list_chats(current_user: dict = Depends(auth.get_current_user)):
     user_id = current_user["username"]
@@ -241,22 +225,19 @@ def get_history(chat_id: str, current_user: dict = Depends(auth.get_current_user
     return mem.get_chat_history(chat_id, user_id=user_id)
 
 
-# =====================
-# 2. CHAT & BRAIN ENDPOINT (PROTECTED)
-# =====================
-
+# CHAT & BRAIN ENDPOINT (PROTECTED)
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest, current_user: dict = Depends(auth.get_current_user)):
     user_id = current_user["username"]
     user_text = req.text
     chat_id = req.chat_id
 
-    # 1. Handle New Chat creation
+    # Handle New Chat creation
     if not chat_id:
         new_chat = mem.create_new_chat(user_id=user_id)
         chat_id = new_chat["chat_id"]
 
-    # 2. Get History
+    # Get History
     history_dicts = mem.get_chat_history(chat_id, user_id=user_id)
     langchain_history = []
     for h in history_dicts:
@@ -265,10 +246,10 @@ async def chat_endpoint(req: ChatRequest, current_user: dict = Depends(auth.get_
         else:
             langchain_history.append(AIMessage(content=h["content"]))
 
-    # 3. Get LTM
+    # Get Long Term Memory
     long_term_mem = mem.get_long_term_memory(user_id=user_id)
 
-    # 4. FIRST CALL TO BRAIN
+    # First Call to Brain
     ai_response = brain.get_brain_response(user_text, langchain_history, long_term_mem)
     ai_response = ai_response.replace("```json", "").replace("```", "")
     
@@ -280,7 +261,7 @@ async def chat_endpoint(req: ChatRequest, current_user: dict = Depends(auth.get_
     except Exception as e:
         print("JSON parse fail:", e)
 
-    # 5. AGENT HANDLING
+    # AGENT HANDLING
     if isinstance(tool_data, dict) and "action" in tool_data:
         print("📤 Sending command to agent:", tool_data)
 
@@ -298,7 +279,7 @@ async def chat_endpoint(req: ChatRequest, current_user: dict = Depends(auth.get_
         mem.append_to_chat(chat_id, "ai", final_answer, user_id=user_id)
         return ChatResponse(response=final_answer, chat_id=chat_id)
 
-    # 6. WEB SEARCH HANDLING
+    # WEB SEARCH HANDLING
     final_answer = ai_response
     try:
         if isinstance(tool_data, dict) and "query" in tool_data:
@@ -314,19 +295,17 @@ async def chat_endpoint(req: ChatRequest, current_user: dict = Depends(auth.get_
         print(f"⚠️ Tool call parsing failed, returning original response. Error: {e}")
         final_answer = ai_response
 
-    # 7. Save to DB
+    # Save to DB
     mem.append_to_chat(chat_id, "human", user_text, user_id=user_id)
     mem.append_to_chat(chat_id, "ai", final_answer, user_id=user_id)
 
-    # 8. Auto-Save "My Name is"
+    # Auto-Save "My Name is"
     if "my name is" in user_text.lower():
         mem.add_long_term_memory(f"User Mentioned: {user_text}", user_id=user_id)
 
     return ChatResponse(response=final_answer, chat_id=chat_id)
 
-# =====================
-# 3. IMAGE QUESTION ENDPOINT (PROTECTED)
-# =====================
+# IMAGE QUESTION ENDPOINT (PROTECTED)
 @app.post("/image_qa", response_model=ChatResponse)
 async def image_question(
     file: UploadFile = File(...), 
@@ -341,7 +320,7 @@ async def image_question(
 
     contents = await file.read()
 
-    # Step 1: Get the Image Description
+    # Get the Image Description
     image_description = None
     error_message = None 
     
@@ -364,7 +343,7 @@ async def image_question(
         mem.append_to_chat(chat_id, "ai", ai_response, user_id=user_id)
         return ChatResponse(response=ai_response, chat_id=chat_id)
 
-    # Step 2: Send Description to Brain
+    # Send Description to Brain
     print(f"🖼️ Vision Model saw: {image_description}")
     
     prompt_for_brain = (
@@ -399,10 +378,7 @@ def service_status():
     except Exception as e:
         return {"error": str(e)}
 
-# =====================
 # 4. VOICE ENDPOINTS (OPEN)
-# =====================
-
 @app.post("/stt")
 async def speech_to_text(file: UploadFile = File(...)):
     uid = uuid.uuid4().hex

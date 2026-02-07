@@ -25,7 +25,7 @@ if "current_chat_id" not in st.session_state:
         # Load the most recent chat
         st.session_state["current_chat_id"] = list(data["chats"].keys())[-1]
 
-# --- SIDEBAR ---
+# SIDEBAR
 with st.sidebar:
     st.title("🗂️ Jarvis Memory")
     
@@ -66,7 +66,7 @@ with st.sidebar:
             mem.rename_chat(curr_id, new_name)
             st.rerun()
 
-# --- MAIN AREA ---
+# MAIN AREA 
 current_id = st.session_state["current_chat_id"]
 # Reload data to ensure we have the latest updates from Backend API if any
 data = mem.load_data()

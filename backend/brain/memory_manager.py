@@ -3,18 +3,13 @@ import os
 import uuid
 from datetime import datetime
 
-# =========================
 # CONFIGURATION
-# =========================
 DATA_DIR = "data"
 USERS_DIR = os.path.join(DATA_DIR, "users")
 
 os.makedirs(USERS_DIR, exist_ok=True)
 
-# =========================
 # INTERNAL HELPERS
-# =========================
-
 def _sanitize_user_id(user_id: str) -> str:
     """Prevent path traversal & invalid folder names"""
     return "".join(c for c in user_id if c.isalnum() or c in ("-", "_"))
@@ -43,18 +38,12 @@ def _ensure_user_files(user_id: str):
         with open(memory_path, "w", encoding="utf-8") as f:
             json.dump([], f)
 
-# =========================
 # PUBLIC INIT
-# =========================
-
 def init_db(user_id: str):
     """Initialize per-user storage"""
     _ensure_user_files(user_id)
 
-# =========================
 # CHAT FUNCTIONS
-# =========================
-
 def get_all_chats(user_id: str):
     """Returns chat list for sidebar"""
     _ensure_user_files(user_id)
@@ -155,10 +144,7 @@ def append_to_chat(chat_id: str, role: str, content: str, user_id: str):
         json.dump(data, f, indent=4)
         f.truncate()
 
-# =========================
 # LONG-TERM MEMORY
-# =========================
-
 def get_long_term_memory(user_id: str):
     _ensure_user_files(user_id)
 

@@ -4,19 +4,19 @@ import uuid
 from datetime import datetime
 from . import memory_manager
 
-# --- CONFIGURATION ---
+# CONFIGURATION 
 CHATS_FILE = "data/chats.json"
 
 # Ensure data directory exists
 os.makedirs("data", exist_ok=True)
 
-# --- INITIALIZE FILES ---
+# INITIALIZE FILES 
 def init_db():
     if not os.path.exists(CHATS_FILE):
         with open(CHATS_FILE, "w") as f:
             json.dump({}, f)
 
-# --- CHAT MANAGEMENT ---
+# CHAT MANAGEMENT
 def get_all_chats():
     """Returns a list of all chat sessions with their IDs and Titles."""
     init_db()
@@ -90,7 +90,7 @@ def rename_chat(chat_id, new_title):
             return True
         return False
 
-# --- LONG TERM MEMORY ---
+# LONG TERM MEMORY
 def get_long_term_memory(user_id: str):
     """Returns the list of core memories for a specific user."""
     return memory_manager.get_long_term_memory(user_id)

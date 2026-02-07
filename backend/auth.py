@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 import hashlib
 
-# --- CONFIGURATION ---
+# CONFIGURATION
 SECRET_KEY = "jarvis_secret_key_change_this"  # Change this in production!
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -17,7 +17,7 @@ USERS_FILE = "users.json"
 pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# --- DATABASE HELPERS ---
+# DATABASE HELPERS
 
 def _read_users_db():
     """Reads the JSON file containing users."""
@@ -39,7 +39,7 @@ def get_user(username: str):
     db = _read_users_db()
     return db.get(username)
 
-# --- PASSWORD LOGIC ---
+# PASSWORD LOGIC 
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
@@ -48,15 +48,15 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-# --- USER CREATION (This is where your error was) ---
+# USER CREATION (This is where your error was) 
 
 def create_user_in_db(username, password):
     """Creates a new user and initializes their storage."""
-    # 1. Check if user exists (Uses the function defined above)
+    # Check if user exists (Uses the function defined above)
     if get_user(username):
         return False
     
-    # 2. Hash password and save
+    # Hash password and save
     hashed_pw = get_password_hash(password)
     db = _read_users_db()
     db[username] = {
@@ -65,7 +65,7 @@ def create_user_in_db(username, password):
     }
     _write_users_db(db)
     
-    # 3. Initialize Memory/Storage Folders for this user
+    # Initialize Memory/Storage Folders for this user
     try:
         # Import inside function to avoid circular import issues
         from brain.memory_manager import init_db
@@ -77,7 +77,7 @@ def create_user_in_db(username, password):
         
     return True
 
-# --- TOKEN LOGIC ---
+# TOKEN LOGIC
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
