@@ -9,11 +9,18 @@
 
 At its core, JARVIS is a modular, locally-aware AI system that combines cloud-level reasoning with on-device control. It listens, understands, decides, and does things, bringing the concept of a truly functional AI assistant closer to reality.
 </p>
+<hr>
+<img width="1912" height="903" alt="image" src="https://github.com/user-attachments/assets/41505cc1-3453-4b49-9615-b3c33398003e" />
+<hr>
+<img width="1916" height="902" alt="image" src="https://github.com/user-attachments/assets/c711ba46-bef6-4a73-8e00-674ddb784f94" />
+<hr>
 
 ##  Tech Stack
+<div align="center">
+
 
 | **Category**              | **Technologies** |
-|---------------------------|------------------|
+|---------------------------|:-----------------|
 | **Programming Languages** | [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://docs.python.org/3/) |
 | **AI / LLM**              | [![Groq](https://img.shields.io/badge/Groq%20LLM-000000?style=for-the-badge)](https://groq.com/) |
 | **Vision Models**         | [![BLIP](https://img.shields.io/badge/BLIP-6A5ACD?style=for-the-badge)](https://arxiv.org/abs/2201.12086) |
@@ -24,6 +31,9 @@ At its core, JARVIS is a modular, locally-aware AI system that combines cloud-le
 | **Local Automation**      | [![os](https://img.shields.io/badge/os-808080?style=for-the-badge)](https://docs.python.org/3/library/os.html) [![subprocess](https://img.shields.io/badge/subprocess-4B4B4B?style=for-the-badge)](https://docs.python.org/3/library/subprocess.html) [![PyAutoGUI](https://img.shields.io/badge/PyAutoGUI-3776AB?style=for-the-badge)](https://pyautogui.readthedocs.io/en/latest/) |
 | **Tools**                 | [![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)](https://git-scm.com/doc) [![VS Code](https://img.shields.io/badge/VS%20Code-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com/docs) |
 | **Deployment / Runtime**  | [![Uvicorn](https://img.shields.io/badge/Uvicorn-121212?style=for-the-badge)](https://www.uvicorn.org/) |
+
+</div>
+
                                                                                               
 ---
 
