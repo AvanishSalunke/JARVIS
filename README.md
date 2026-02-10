@@ -1,4 +1,11 @@
-<h1 align="center">JARVIS</h1>
+<h1 align="center">
+  <a href="https://git.io/typing-svg">
+    <img src="https://readme-typing-svg.demolab.com?font=Audiowide&weight=700&size=80&duration=3000&pause=1000&color=00F0FF&center=true&vCenter=true&width=800&height=120&lines=J.A.R.V.I.S.;WELCOME+HOME+SIR" alt="Typing SVG" />
+  </a>
+</h1>
+
+  <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
+
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -10,7 +17,7 @@
 At its core, JARVIS is a modular, locally-aware AI system that combines cloud-level reasoning with on-device control. It listens, understands, decides, and does things, bringing the concept of a truly functional AI assistant closer to reality.
 </p>
 <hr>
-<img width="1912" height="903" alt="image" src="https://github.com/user-attachments/assets/41505cc1-3453-4b49-9615-b3c33398003e" />
+<img width="1914" height="903" alt="image" src="https://github.com/user-attachments/assets/1cf975e5-bc1f-46e3-ae5f-7501f6fdfd2e" />
 <hr>
 <img width="1916" height="902" alt="image" src="https://github.com/user-attachments/assets/c711ba46-bef6-4a73-8e00-674ddb784f94" />
 <hr>
