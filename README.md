@@ -16,8 +16,8 @@ At its core, JARVIS is a modular, locally-aware AI system that combines cloud-le
 <hr>
 
 ##  Tech Stack
-<div align="center">
 
+<div align="center">
 
 | **Category**              | **Technologies** |
 |---------------------------|:-----------------|
@@ -34,7 +34,6 @@ At its core, JARVIS is a modular, locally-aware AI system that combines cloud-le
 
 </div>
 
-                                                                                              
 ---
 
 ## 🏗️ System Architecture
