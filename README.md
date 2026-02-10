@@ -5,7 +5,7 @@
 
 
 <p align="justify">
-JARVIS is an AI-powered personal assistant designed to bridge the gap between intelligence and execution. Unlike conventional assistants that stop at conversation, JARVIS extends its capabilities into your local operating system - opening applications, managing system controls, navigating the web, and responding visually to the world around it.
+<a href="https://jarvis-byte-me.vercel.app/">JARVIS</a> is an AI-powered personal assistant designed to bridge the gap between intelligence and execution. Unlike conventional assistants that stop at conversation, JARVIS extends its capabilities into your local operating system - opening applications, managing system controls, navigating the web, and responding visually to the world around it.
 
 At its core, JARVIS is a modular, locally-aware AI system that combines cloud-level reasoning with on-device control. It listens, understands, decides, and does things, bringing the concept of a truly functional AI assistant closer to reality.
 </p>
@@ -130,10 +130,23 @@ JARVIS/
 └── README.md                       # Project Documentation
 
 ```
+## 🚀 How to Use JARVIS
+Jarvis can be accessed by [the link](https://jarvis-byte-me.vercel.app/). However voice input and image captioning features cannot be accessed on the hosted site due to memory limits of hosting backend. Follow the steps below to access the Local Agent for local device task on Windows.
 
+#### 1️⃣ Download the Agent.exe file
+Download the [agent.exe](https://github.com/AvanishSalunke/JARVIS/raw/refs/heads/main/backend/agent.exe) file.
+
+#### 2️⃣ Run the Agent.exe file
+This can done by clicking on the downloaded exe file or using command terminal
+
+```bash
+.\agent.exe  #or the location of the downloaded file
+```
+
+
+---
 ## 🚀 How to Run JARVIS locally
-
-JARVIS can be run locally for development and testing. A hosted version is planned and will be added soon.
+Follow the steps below to run the project locally and use all its features.
 
 
 #### 1️⃣ Clone the Repository
@@ -185,4 +198,3 @@ npm run dev
 - [Pratyush Rao](https://github.com/PratyushRao)
 - [Purvasha Singh](https://github.com/purrvax)
 - [Kavish Nasta](https://github.com/kavishnasta)
-
