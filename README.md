@@ -134,7 +134,7 @@ JARVIS/
 Jarvis can be accessed by [the link](https://jarvis-byte-me.vercel.app/). However voice input and image captioning features cannot be accessed on the hosted site due to memory limits of hosting backend. Follow the steps below to access the Local Agent for local device task on Windows.
 
 #### 1️⃣ Download the Agent.exe file
-Download the [agent.exe](https://github.com/AvanishSalunke/JARVIS/raw/refs/heads/main/backend/agent.exe) file.
+Download the [agent.exe](https://github.com/AvanishSalunke/JARVIS/raw/refs/heads/main/agent.exe) file.
 
 #### 2️⃣ Run the Agent.exe file
 This can done by clicking on the downloaded exe file or using command terminal
